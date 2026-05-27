@@ -1,0 +1,199 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: listings
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - category: string (required, enum)
+    //   - subcategory: string (required, 1-50 chars)
+    //   - description: string (required, 1-1000 chars)
+    //   - location: map (required)
+    //     - area: string (required, 1-100 chars)
+    //     - landmark: string (optional, 1-100 chars)
+    //   - contact: map (optional)
+    //     - phone: string (optional, regex)
+    //     - whatsapp: string (optional, regex)
+    //   - languages: list (optional, strings)
+    //   - workingHours: string (optional, 1-100 chars)
+    //   - isMobile: bool (optional)
+    //   - photos: list (optional, urls)
+    //   - listedBy: string (required, immutable)
+    //   - verified: bool (optional, only admin can update)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: reviews
+    // Document ID: auto-generated
+    // Fields:
+    //   - listingId: string (required, immutable)
+    //   - rating: number (required, 1-5)
+    //   - tags: list (optional, strings)
+    //   - reviewText: string (optional, 1-500 chars)
+    //   - reviewedBy: string (required, immutable)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - phone: string (required, regex)
+    //   - role: string (optional, 'admin' | 'user')
+    //
+    // Subcollection: users/{userId}/savedListings
+    // Document ID: listingId
+    // Fields:
+    //   - savedAt: number (required)
+    //
+    // Collection: reports
+    // Document ID: auto-generated
+    // Fields:
+    //   - listingId: string (required)
+    //   - reason: string (required)
+    //   - details: string (optional)
+    //   - reportedBy: string (required)
+    //   - createdAt: number (required)
+    //   - status: string (required, 'pending' | 'reviewed' | 'resolved')
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.listedBy;
+    }
+
+    function isReviewOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.reviewedBy;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "01fe24bci064@kletech.ac.in" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidPhone(phone) {
+      return phone is string && phone.matches("^[0-9+]{10,15}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidListing(data) {
+      return hasRequiredFields(['name', 'category', 'subcategory', 'description', 'location', 'listedBy', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.category in ['Food Vendor', 'Pest Control', 'Labour', 'Laundry', 'Repair', 'Transport', 'Domestic Help', 'Other'] &&
+             data.subcategory is string && data.subcategory.size() > 0 && data.subcategory.size() <= 50 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 1000 &&
+             data.location is map && data.location.area is string && data.location.area.size() > 0 && data.location.area.size() <= 100 &&
+             data.listedBy == request.auth.uid &&
+             data.createdAt is number &&
+             data.updatedAt is number;
+    }
+
+    function isValidReview(data) {
+      return hasRequiredFields(['listingId', 'rating', 'reviewedBy', 'createdAt']) &&
+             data.listingId is string &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.reviewedBy == request.auth.uid &&
+             data.createdAt is number;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['name', 'phone']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             isValidPhone(data.phone);
+    }
+
+    function isValidReport(data) {
+      return hasRequiredFields(['listingId', 'reason', 'reportedBy', 'createdAt', 'status']) &&
+             data.listingId is string &&
+             data.reason is string &&
+             data.reportedBy == request.auth.uid &&
+             data.createdAt is number &&
+             data.status in ['pending', 'reviewed', 'resolved'];
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /listings/{listingId} {
+      allow read: if true; // Publicly readable for discovery
+      allow create: if isAuthenticated() && isValidListing(request.resource.data);
+      allow update: if isAuthenticated() && isValidListing(request.resource.data) && 
+                      (isDocOwner() || isAdmin()) &&
+                      request.resource.data.listedBy == resource.data.listedBy &&
+                      request.resource.data.createdAt == resource.data.createdAt &&
+                      (request.resource.data.verified == resource.data.verified || isAdmin());
+      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidReview(request.resource.data);
+        allow update: if isAuthenticated() && isValidReview(request.resource.data) && 
+                        (isReviewOwner() || isAdmin()) &&
+                        request.resource.data.reviewedBy == resource.data.reviewedBy &&
+                        request.resource.data.listingId == resource.data.listingId &&
+                        request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isAuthenticated() && (isReviewOwner() || isAdmin());
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated(); // Users can see each other's basic profile for trust
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/savedListings/{listingId} {
+      allow get, list, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidReport(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

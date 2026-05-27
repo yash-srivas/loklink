@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "Listing": {
+      "title": "Listing",
+      "description": "A person or small business listing.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Person or stall/shop name" },
+        "category": { "type": "string", "enum": ["Food Vendor", "Pest Control", "Labour", "Laundry", "Repair", "Transport", "Domestic Help", "Other"] },
+        "subcategory": { "type": "string", "description": "Specific service type" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "area": { "type": "string" },
+            "landmark": { "type": "string" }
+          },
+          "required": ["area"]
+        },
+        "contact": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "whatsapp": { "type": "string" }
+          }
+        },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "workingHours": { "type": "string" },
+        "isMobile": { "type": "boolean" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "listedBy": { "type": "string", "description": "User ID of creator" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["name", "category", "subcategory", "location", "listedBy", "createdAt", "updatedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A community review for a listing.",
+      "type": "object",
+      "properties": {
+        "listingId": { "type": "string" },
+        "rating": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "reviewText": { "type": "string" },
+        "reviewedBy": { "type": "string" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["listingId", "rating", "reviewedBy", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "App user profile.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "listingsCreated": { "type": "number" },
+        "reviewsGiven": { "type": "number" },
+        "trustScore": { "type": "number" },
+        "languagePreference": { "type": "string" }
+      },
+      "required": ["name", "phone"]
+    },
+    "SavedListing": {
+      "title": "SavedListing",
+      "description": "A reference to a saved listing.",
+      "type": "object",
+      "properties": {
+        "savedAt": { "type": "number" }
+      },
+      "required": ["savedAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "A report about a listing.",
+      "type": "object",
+      "properties": {
+        "listingId": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "reportedBy": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"] }
+      },
+      "required": ["listingId", "reason", "reportedBy", "createdAt", "status"]
+    }
+  },
+  "firestore": {
+    "/listings/{listingId}": {
+      "schema": "Listing",
+      "description": "Collection of local listings."
+    },
+    "/listings/{listingId}/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews for a specific listing."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "/users/{userId}/savedListings/{listingId}": {
+      "schema": "SavedListing",
+      "description": "User's saved listings."
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Reports about listings."
+    }
+  }
+}

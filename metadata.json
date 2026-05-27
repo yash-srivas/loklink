@@ -1,0 +1,7 @@
+{
+  "name": "Remix: GullyLink",
+  "description": "A community-powered platform to discover and list local street vendors, daily wage workers, and small businesses with zero digital presence.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
