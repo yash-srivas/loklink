@@ -27,6 +27,7 @@ import {
   getDownloadURL
 } from '../firebase';
 import { User, Job, JobRequest, Review, Notification } from '../types';
+import { geminiService } from './geminiService';
 
 // Extend User & Job types with wallet/SOS properties safely inside this service
 export interface ExtendedUser extends User {
@@ -43,8 +44,9 @@ export interface SOSCrises {
   location: string;
   urgency: 'medium' | 'high' | 'critical';
   createdAt: number;
-  status: 'active' | 'resolved';
+  status: 'active' | 'helping' | 'resolved';
   helpCount: number;
+  helperId?: string;
 }
 
 class DbService {
@@ -284,12 +286,32 @@ class DbService {
       console.warn("Soft escrow deduction failed:", err);
     }
 
+    // Auto-generate translations in en, kn, hi using Gemini
+    let titleTranslations: Record<string, string> = { en: job.title };
+    let descTranslations: Record<string, string> = { en: job.description };
+    try {
+      const [knTitle, hiTitle, knDesc, hiDesc] = await Promise.all([
+        geminiService.translateText(job.title, 'kn'),
+        geminiService.translateText(job.title, 'hi'),
+        geminiService.translateText(job.description, 'kn'),
+        geminiService.translateText(job.description, 'hi')
+      ]);
+      titleTranslations.kn = knTitle;
+      titleTranslations.hi = hiTitle;
+      descTranslations.kn = knDesc;
+      descTranslations.hi = hiDesc;
+    } catch (e) {
+      console.warn("Gemini offline translation skipped during postJob:", e);
+    }
+
     const newJob: Job = {
       ...job,
       id: 'job-' + Math.random().toString(36).substr(2, 9),
       workerId: null,
       status: 'open',
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      titleTranslations,
+      descTranslations
     };
 
     try {
@@ -590,10 +612,22 @@ class DbService {
   // REVIEWS COLLECTION & RATINGS
   // ==========================================
   async addReview(review: Omit<Review, 'id' | 'createdAt'>): Promise<Review> {
+    let reviewerName = 'Community Member';
+    let reviewerAvatar = '';
+    try {
+      const revProfile = this.getLocalUserProfile(review.reviewerId);
+      if (revProfile) {
+        reviewerName = revProfile.name;
+        reviewerAvatar = revProfile.avatarUrl;
+      }
+    } catch (e) {}
+
     const newReview: Review = {
       ...review,
       id: 'rev-' + Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      reviewerName,
+      reviewerAvatar
     };
 
     try {
@@ -803,9 +837,38 @@ class DbService {
     }
 
     const list = this.getLocalData<SOSCrises>('loklink_sos');
+    const sos = list.find(s => s.id === sosId);
+    
+    if (sos && sos.helperId) {
+      await this.loadMockFunds(sos.helperId, 50);
+      await this.sendNotification({
+        userId: sos.helperId,
+        type: 'system',
+        message: `Payout of ₹50 credited for successfully resolving local SOS emergency!`,
+        relatedId: sosId
+      });
+    }
+
     const updated = list.map(item => {
       if (item.id === sosId) {
-        return { ...item, status: 'resolved' as const, helpCount: item.helpCount + 1 };
+        return { ...item, status: 'resolved' as const };
+      }
+      return item;
+    });
+    this.setLocalData('loklink_sos', updated);
+  }
+
+  async acceptSOSRequest(sosId: string, helperId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'sos', sosId), { status: 'helping', helperId });
+    } catch (e) {
+      console.warn('Firestore acceptSOSRequest failed, falling back to LocalStorage:', e);
+    }
+
+    const list = this.getLocalData<SOSCrises>('loklink_sos');
+    const updated = list.map(item => {
+      if (item.id === sosId) {
+        return { ...item, status: 'helping' as const, helperId, helpCount: item.helpCount + 1 };
       }
       return item;
     });

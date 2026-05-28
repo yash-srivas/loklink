@@ -25,6 +25,7 @@ export function RatingModal({ isOpen, onClose, jobId, reviewerId, revieweeId, ty
   const [c1, setC1] = useState(5); // Punctuality or Payment
   const [c2, setC2] = useState(5); // Quality or Safety
   const [c3, setC3] = useState(5); // Reliability or Behavior
+  const [comment, setComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -46,7 +47,8 @@ export function RatingModal({ isOpen, onClose, jobId, reviewerId, revieweeId, ty
         revieweeId,
         type,
         ratings,
-        overall
+        overall,
+        comment: comment.trim()
       });
 
       toast.success('Rating submitted successfully!');
@@ -130,6 +132,17 @@ export function RatingModal({ isOpen, onClose, jobId, reviewerId, revieweeId, ty
           <div className="space-y-2 text-center">
             <label className="text-[10px] font-black uppercase text-stone-400 tracking-wider block">{labels.l3}</label>
             {renderStars(c3, setC3)}
+          </div>
+
+          {/* Comments Field */}
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black uppercase text-stone-400 tracking-wider block">Write a Comment</label>
+            <textarea 
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Provide community feedback regarding the safety, work quality, and timing..."
+              className="w-full min-h-[80px] rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-850/20 p-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/50 placeholder:text-stone-400 dark:text-stone-200 font-medium"
+            />
           </div>
 
           {/* Submit Action */}

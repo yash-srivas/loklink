@@ -19,7 +19,8 @@ import {
   HelpCircle,
   Mail,
   Send,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 import { Button, Card, Badge, Input } from './components/ui';
 import { useAuth } from './App';
@@ -32,15 +33,27 @@ import { applyAccentColor } from './lib/utils';
 export default function Settings() {
   const { user } = useAuth() as any;
   const navigate = useNavigate();
-  const { t, changeLanguage } = useTranslation();
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      import('./services/dbService').then(({ dbService }) => {
+        dbService.getUserProfile(user.uid).then(p => {
+          if (p) setProfile(p);
+        });
+      });
+    }
+  }, [user]);
+  const { t, changeLanguage, language } = useTranslation();
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [accentColor, setAccentColor] = useState(localStorage.getItem('accent-color') || 'orange');
   const [compactMode, setCompactMode] = useState(localStorage.getItem('compact-mode') === 'true');
-  
-  // Custom language loader linked system-wide
-  const [language, setLanguageState] = useState(localStorage.getItem('loklink_lang') || 'en');
 
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [activeLegalModal, setActiveLegalModal] = useState<'privacy' | 'terms' | 'rating' | null>(null);
+  const [platformRating, setPlatformRating] = useState<number>(5);
+  const [platformFeedback, setPlatformFeedback] = useState<string>('');
+  
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketDescription, setTicketDescription] = useState('');
   const [isSendingTicket, setIsSendingTicket] = useState(false);
@@ -110,7 +123,6 @@ export default function Settings() {
   }, [compactMode]);
 
   const handleLanguageChange = async (langCode: string) => {
-    setLanguageState(langCode);
     await changeLanguage(langCode as LanguageCode);
     toast.success('System language updated!', {
       description: `Language set to ${langCode === 'en' ? 'English' : langCode === 'hi' ? 'Hindi (हिन्दी)' : 'Kannada (ಕನ್ನಡ)'}`
@@ -144,12 +156,12 @@ export default function Settings() {
   };
 
   const accentColors = [
-    { name: 'Orange', value: 'orange', class: 'bg-orange-600' },
-    { name: 'Blue', value: 'blue', class: 'bg-blue-600' },
-    { name: 'Green', value: 'green', class: 'bg-emerald-600' },
-    { name: 'Purple', value: 'purple', class: 'bg-purple-600' },
-    { name: 'Red', value: 'red', class: 'bg-rose-600' },
-    { name: 'Stone', value: 'stone', class: 'bg-stone-850 dark:bg-stone-700' },
+    { name: 'Orange', value: 'orange', hex: '#ea580c' },
+    { name: 'Blue', value: 'blue', hex: '#2563eb' },
+    { name: 'Green', value: 'green', hex: '#059669' },
+    { name: 'Purple', value: 'purple', hex: '#9333ea' },
+    { name: 'Red', value: 'red', hex: '#e11d48' },
+    { name: 'Stone', value: 'stone', hex: '#78716c' },
   ];
 
   const SettingSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
@@ -248,7 +260,8 @@ export default function Settings() {
                 <button
                   key={c.value}
                   onClick={() => setAccentColor(c.value)}
-                  className={`w-10 h-10 rounded-full ${c.class} flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer ${
+                  style={{ backgroundColor: c.hex }}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer ${
                     accentColor === c.value ? 'ring-4 ring-stone-300 dark:ring-stone-600 scale-110' : ''
                   }`}
                 >
@@ -322,13 +335,15 @@ export default function Settings() {
           />
         </SettingSection>
 
-        <SettingSection title="Administrative Board">
-          <SettingItem 
-            icon={Shield} 
-            label="Access Proximity Admin Console" 
-            onClick={() => navigate('/admin')} 
-          />
-        </SettingSection>
+        {profile?.isAdmin && (
+          <SettingSection title="Administrative Board">
+            <SettingItem 
+              icon={Shield} 
+              label="Access Proximity Admin Console" 
+              onClick={() => navigate('/admin')} 
+            />
+          </SettingSection>
+        )}
 
         <SettingSection title="Danger Zone">
           <SettingItem 
@@ -366,6 +381,22 @@ export default function Settings() {
                 {
                   q: "How does the escrow payment system work?",
                   a: "When an employer hires a worker, the agreed budget is locked in Escrow. Once the job is completed, the employer confirms, and the escrow funds are immediately transferred to the worker's wallet."
+                },
+                {
+                  q: "How can I verify if a worker is genuine?",
+                  a: "Look for the green 'Verified' badge which represents that the worker has completed biometric/Aadhar scanning with our secure LOKLINK AI."
+                },
+                {
+                  q: "Is there a limit to daily wage requests?",
+                  a: "No, workers are free to set their preferred daily rates based on skills and experience, and employers can negotiate directly via the hiring proposal."
+                },
+                {
+                  q: "What happens in case of an accident?",
+                  a: "LOKLINK provides direct access to nearby emergency contacts and a one-click distress SOS system that alerts local helpers immediately."
+                },
+                {
+                  q: "How do I claim my wallet balance?",
+                  a: "Balance can be directly paid out to any valid Indian bank account via UPI. Payout processing takes less than 5 minutes."
                 }
               ].map((faq, idx) => {
                 const isOpen = activeFaq === idx;
@@ -447,18 +478,108 @@ export default function Settings() {
         </div>
 
         <SettingSection title="Community">
-          <SettingItem icon={Star} label="Write Platform Rating" onClick={() => toast.success('Thank you for your response!')} />
+          <SettingItem icon={Star} label="Write Platform Rating" onClick={() => setActiveLegalModal('rating')} />
           <SettingItem icon={Share2} label="Copy Invite Link" onClick={() => {
             navigator.clipboard.writeText('https://loklink.app');
             toast.success('Link copied to clipboard');
           }} />
-          <SettingItem icon={FileText} label="Privacy Policy Statement" onClick={() => toast.info('Privacy Policy')} />
-          <SettingItem icon={FileText} label="Terms of Service terms" onClick={() => toast.info('Terms of Service')} />
+          <SettingItem icon={FileText} label="Privacy Policy Statement" onClick={() => setActiveLegalModal('privacy')} />
+          <SettingItem icon={FileText} label="Terms of Service terms" onClick={() => setActiveLegalModal('terms')} />
           <div className="p-4 text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-stone-300 dark:text-stone-700">LOKLINK Showcase Version 1.0.8</p>
           </div>
         </SettingSection>
       </main>
+
+      {/* POLICY & RATING MODALS OVERLAY */}
+      <AnimatePresence>
+        {activeLegalModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg bg-white dark:bg-stone-900 border border-stone-100 dark:border-stone-800 rounded-[32px] shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+            >
+              <div className="p-6 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
+                <h3 className="font-display font-black text-lg text-stone-900 dark:text-white capitalize">
+                  {activeLegalModal === 'rating' ? 'Rate LOKLINK App' : activeLegalModal === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+                </h3>
+                <button onClick={() => setActiveLegalModal(null)} className="p-2 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-full">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto no-scrollbar space-y-4 text-sm text-stone-600 dark:text-stone-300">
+                {activeLegalModal === 'privacy' && (
+                  <div className="space-y-4">
+                    <p className="font-bold text-stone-800 dark:text-white">LOKLINK Privacy Commitment</p>
+                    <p>At LOKLINK, we value the trust you place in our platform. We gather minimal user parameters including phone metadata, approximate trade coordinates, and specialist daily rates to help local hirers discover you near Hubballi.</p>
+                    <p className="font-bold text-stone-800 dark:text-white">1. Secure Aadhar Storage</p>
+                    <p>All scanned identity credentials (Aadhar card extracts) are parsed locally by our LOKLINK AI scanner model. No card visual data is shared with third parties or advertisers.</p>
+                    <p className="font-bold text-stone-800 dark:text-white">2. Proximity Shielding</p>
+                    <p>To preserve safety, we do not expose your precise residential location on the mapping dashboards. Listings display a randomized offset zone within a 500-meter threshold.</p>
+                  </div>
+                )}
+
+                {activeLegalModal === 'terms' && (
+                  <div className="space-y-4">
+                    <p className="font-bold text-stone-800 dark:text-white">LOKLINK Terms of Service</p>
+                    <p>Welcome to LOKLINK. By accessing our services, you agree to comply with our fair-labor and secure payout guidelines.</p>
+                    <p className="font-bold text-stone-800 dark:text-white">1. Escrow Release Guarantees</p>
+                    <p>Employers agree to lock specified job wages in LOKLINK Escrow prior to requesting workers. Once a worker completes their tasks, the employer must release escrow holds within 24 hours.</p>
+                    <p className="font-bold text-stone-800 dark:text-white">2. Zero Discrimination Policy</p>
+                    <p>LOKLINK is built to empower blue-collar specialists without bias. Any discrimination based on language, region, or gender will result in immediate permanent account termination.</p>
+                  </div>
+                )}
+
+                {activeLegalModal === 'rating' && (
+                  <div className="space-y-4 text-center">
+                    <p className="text-xs font-semibold">How would you rate your LOKLINK experience today?</p>
+                    <div className="flex justify-center gap-2 py-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setPlatformRating(star)}
+                          className="focus:outline-none transform hover:scale-115 transition-transform"
+                        >
+                          <Star
+                            size={32}
+                            className={star <= platformRating ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-stone-200 dark:text-stone-700'}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="space-y-1 text-left">
+                      <label className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Leave Feedback remarks</label>
+                      <textarea
+                        value={platformFeedback}
+                        onChange={(e) => setPlatformFeedback(e.target.value)}
+                        placeholder="Help us improve LOKLINK for workers and employers..."
+                        rows={3}
+                        className="flex w-full rounded-xl border border-stone-200 bg-stone-50/50 px-4 py-3 text-xs placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 transition-all font-medium dark:bg-stone-850 dark:border-stone-700 dark:text-stone-200"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        toast.success("Thank you for your rating!", {
+                          description: `Your ${platformRating}-star review helps improve LOKLINK India.`
+                        });
+                        setActiveLegalModal(null);
+                        setPlatformFeedback('');
+                      }}
+                      className="w-full h-11 text-xs font-black uppercase tracking-widest mt-2"
+                    >
+                      Submit Platform Review
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

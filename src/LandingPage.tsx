@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card } from './components/ui';
+import { useTranslation } from './lib/i18n';
 import { 
   MapPin, 
   Bot, 
@@ -27,6 +28,7 @@ import {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   const [scrollY, setScrollY] = useState(0);
 
@@ -49,6 +51,8 @@ export default function LandingPage() {
   const handleGetStarted = (role?: 'worker' | 'employer') => {
     if (role) {
       localStorage.setItem('loklink_temp_role', role);
+    } else {
+      localStorage.removeItem('loklink_temp_role');
     }
     navigate('/login');
   };
@@ -78,9 +82,9 @@ export default function LandingPage() {
           </div>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-bold tracking-tight">
-            <a href="#features" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">Features</a>
-            <a href="#how-it-works" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">How It Works</a>
-            <a href="#testimonials" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">Safety</a>
+            <a href="#features" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">{t('Features')}</a>
+            <a href="#how-it-works" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">{t('How It Works')}</a>
+            <a href="#testimonials" className="text-stone-600 dark:text-stone-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">{t('Safety')}</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -96,16 +100,16 @@ export default function LandingPage() {
             <Button 
               variant="outline" 
               onClick={() => handleGetStarted()}
-              className="hidden sm:inline-flex"
+              className="hidden sm:inline-flex animate-fade-in"
             >
-              Sign In
+              {t('Sign In')}
             </Button>
 
             <Button 
               onClick={() => handleGetStarted()}
-              className="gap-2"
+              className="gap-2 animate-scale-in"
             >
-              <span>Launch App</span>
+              <span>{t('Launch App')}</span>
               <ArrowRight size={16} />
             </Button>
           </div>
@@ -120,24 +124,24 @@ export default function LandingPage() {
           <div className="lg:col-span-7 space-y-8 text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-black uppercase tracking-wider animate-bounce">
               <Sparkles size={14} className="animate-pulse" />
-              <span>Next-Gen Hyperlocal Gig Platform</span>
+              <span>{t('Next-Gen Hyperlocal Gig Platform')}</span>
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black text-stone-900 dark:text-white leading-[1.08] tracking-tight">
-              Bridging the Gap Between <span className="text-gradient">Talent</span> & <span className="text-gradient">Opportunity</span>
+              {t('Bridging the Gap Between')} <span className="text-gradient">{t('Talent')}</span> & <span className="text-gradient">{t('Opportunity')}</span>
             </h1>
 
             <p className="text-lg text-stone-500 dark:text-stone-400 font-medium leading-relaxed max-w-xl">
-              LOKLINK connects verified gig workers and hiring parties locally in real time. Use state-of-the-art AI command flows, interactive mapping, secure escrows, and robust SOS security.
+              {t("LOKLINK connects verified gig workers and hiring parties locally in real time. Use state-of-the-art AI command flows, interactive mapping, secure escrows, and robust SOS security.")}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+            <div id="hero-role-buttons" className="flex flex-col sm:flex-row gap-4 pt-2">
               <button
                 onClick={() => handleGetStarted('employer')}
                 className="h-14 px-8 bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-orange-500/25 border border-orange-600/20 transition-all hover:scale-105 active:scale-[0.98] cursor-pointer"
               >
                 <Briefcase size={20} />
-                <span>Hire Gig Workers</span>
+                <span>{t('Hire Gig Workers')}</span>
               </button>
 
               <button
@@ -145,7 +149,7 @@ export default function LandingPage() {
                 className="h-14 px-8 bg-white dark:bg-stone-900 border-2 border-stone-200 hover:border-orange-400 dark:border-stone-800 dark:hover:border-orange-500/60 text-stone-700 hover:text-stone-950 dark:text-stone-300 dark:hover:text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-[0.98] cursor-pointer shadow-sm hover:shadow"
               >
                 <Users size={20} className="text-orange-500" />
-                <span>Find Local Work</span>
+                <span>{t('Find Local Work')}</span>
               </button>
             </div>
 
@@ -185,10 +189,10 @@ export default function LandingPage() {
               <div className="flex items-center justify-between border-b border-stone-200/40 dark:border-stone-800/40 pb-4">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">LOKLINK NETWORK</span>
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{t('LOKLINK NETWORK')}</span>
                 </div>
                 <div className="px-2.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200/50 dark:border-stone-800/50 text-[9px] font-black uppercase text-stone-500">
-                  REAL-TIME GPS
+                  {t('REAL-TIME GPS')}
                 </div>
               </div>
 
@@ -198,8 +202,8 @@ export default function LandingPage() {
                 <div className="absolute top-6 left-12 p-2 bg-white dark:bg-stone-950 rounded-2xl shadow-lg border border-stone-200/40 dark:border-stone-800/60 flex items-center gap-2 animate-float scale-90">
                   <div className="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center text-orange-600 font-bold text-sm">💼</div>
                   <div>
-                    <h5 className="font-extrabold text-[10px] text-stone-900 dark:text-white leading-none">Pipeline Repair</h5>
-                    <span className="text-[8px] text-stone-400 leading-none">Vidyanagar • ₹600</span>
+                    <h5 className="font-extrabold text-[10px] text-stone-900 dark:text-white leading-none">{t('Pipeline Repair')}</h5>
+                    <span className="text-[8px] text-stone-400 leading-none">{t('Vidyanagar')} • ₹600</span>
                   </div>
                 </div>
 
@@ -207,7 +211,7 @@ export default function LandingPage() {
                   <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Basavaraj" alt="worker" className="w-8 h-8 rounded-xl bg-stone-50" />
                   <div>
                     <h5 className="font-extrabold text-[10px] text-stone-900 dark:text-white leading-none">Basavaraj Patil</h5>
-                    <span className="text-[8px] text-stone-400 leading-none">Plumber • ★ 4.7</span>
+                    <span className="text-[8px] text-stone-400 leading-none">{t('Plumber')} • ★ 4.7</span>
                   </div>
                 </div>
 
@@ -221,8 +225,8 @@ export default function LandingPage() {
                     <Sparkles size={14} className="animate-spin" style={{ animationDuration: '4s' }} />
                   </div>
                   <div>
-                    <h6 className="font-extrabold text-[10px] text-stone-900 dark:text-white uppercase tracking-wider">AI MATCH CONCLUDED</h6>
-                    <p className="text-[9px] text-stone-400 font-medium leading-normal mt-0.5">Basavaraj has claimed the job and has been routed to Anand's location in Vidyanagar.</p>
+                    <h6 className="font-extrabold text-[10px] text-stone-900 dark:text-white uppercase tracking-wider">{t('AI MATCH CONCLUDED')}</h6>
+                    <p className="text-[9px] text-stone-400 font-medium leading-normal mt-0.5">{t("Basavaraj has claimed the job and has been routed to Anand's location in Vidyanagar.")}</p>
                   </div>
                 </div>
               </div>
@@ -234,12 +238,12 @@ export default function LandingPage() {
                     <Wallet size={16} />
                   </div>
                   <div>
-                    <h5 className="font-black text-xs text-stone-900 dark:text-white">Escrow Secured</h5>
-                    <span className="text-[9px] text-stone-400 font-bold">₹600 Milestone</span>
+                    <h5 className="font-black text-xs text-stone-900 dark:text-white">{t('Escrow Secured')}</h5>
+                    <span className="text-[9px] text-stone-400 font-bold">₹600 {t('Milestone')}</span>
                   </div>
                 </div>
                 <div className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40">
-                  PROTECTED
+                  {t('PROTECTED')}
                 </div>
               </div>
 
@@ -256,17 +260,17 @@ export default function LandingPage() {
             <div className="p-6 text-center space-y-2">
               <div className="flex justify-center text-orange-600"><Briefcase size={28} /></div>
               <h3 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white">10,000+</h3>
-              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Active Gig Postings</p>
+              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{t('Active Gig Postings')}</p>
             </div>
             <div className="p-6 text-center space-y-2 border-y sm:border-y-0 sm:border-x border-stone-200/50 dark:border-stone-800/50">
               <div className="flex justify-center text-orange-600"><Users size={28} /></div>
               <h3 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white">98%</h3>
-              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Job Completion Rate</p>
+              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{t('Job Completion Rate')}</p>
             </div>
             <div className="p-6 text-center space-y-2">
               <div className="flex justify-center text-orange-600"><TrendingUp size={28} /></div>
               <h3 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white">15 Min</h3>
-              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Average Connection Time</p>
+              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{t('Average Connection Time')}</p>
             </div>
           </div>
         </div>
@@ -276,9 +280,9 @@ export default function LandingPage() {
       <section id="how-it-works" className="relative z-10 py-20 px-6">
         <div className="max-w-7xl mx-auto space-y-16 text-center">
           <div className="space-y-3 max-w-xl mx-auto">
-            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">SIMPLIFIED WORKFLOW</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight">How LOKLINK Works</h2>
-            <p className="text-sm text-stone-500 font-medium">Getting jobs done locally should not be difficult. LOKLINK streamlines the entire hiring lifecycle in 3 simple steps.</p>
+            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">{t('SIMPLIFIED WORKFLOW')}</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight">{t('How LOKLINK Works')}</h2>
+            <p className="text-sm text-stone-500 font-medium">{t('Getting jobs done locally should not be difficult. LOKLINK streamlines the entire hiring lifecycle in 3 simple steps.')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -312,8 +316,8 @@ export default function LandingPage() {
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-inner ${item.gradient}`}>
                   <item.icon size={22} />
                 </div>
-                <h4 className="text-lg font-black text-stone-900 dark:text-white mb-2">{item.title}</h4>
-                <p className="text-xs text-stone-500 dark:text-stone-400 font-medium leading-relaxed">{item.desc}</p>
+                <h4 className="text-lg font-black text-stone-900 dark:text-white mb-2">{t(item.title)}</h4>
+                <p className="text-xs text-stone-550 dark:text-stone-400 font-medium leading-relaxed">{t(item.desc)}</p>
               </div>
             ))}
           </div>
@@ -324,9 +328,9 @@ export default function LandingPage() {
       <section id="features" className="relative z-10 py-20 bg-stone-100/30 dark:bg-stone-950/20 px-6 border-y border-stone-200/30 dark:border-stone-800/30">
         <div className="max-w-7xl mx-auto space-y-16 text-center">
           <div className="space-y-3 max-w-xl mx-auto">
-            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">PLATFORM FEATS</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight">Equipped with Elite Features</h2>
-            <p className="text-sm text-stone-500 font-medium">LOKLINK brings state-of-the-art enterprise tech into hyperlocal labor markets, ensuring smooth operations all around.</p>
+            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">{t('PLATFORM FEATS')}</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-stone-900 dark:text-white tracking-tight">{t('Equipped with Elite Features')}</h2>
+            <p className="text-sm text-stone-500 font-medium">{t('LOKLINK brings state-of-the-art enterprise tech into hyperlocal labor markets, ensuring smooth operations all around.')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -367,8 +371,8 @@ export default function LandingPage() {
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
                     <f.icon size={20} />
                   </div>
-                  <h4 className="text-base font-black text-stone-900 dark:text-white">{f.title}</h4>
-                  <p className="text-xs text-stone-500 dark:text-stone-400 font-medium leading-relaxed">{f.desc}</p>
+                  <h4 className="text-base font-black text-stone-900 dark:text-white">{t(f.title)}</h4>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 font-medium leading-relaxed">{t(f.desc)}</p>
                 </div>
               </Card>
             ))}
@@ -385,17 +389,24 @@ export default function LandingPage() {
             <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-orange-400/8 rounded-full blur-3xl pointer-events-none" />
 
             <div className="space-y-4 max-w-xl mx-auto">
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">READY TO LAUNCH?</span>
-              <h2 className="text-3xl sm:text-5xl font-black text-stone-900 dark:text-white tracking-tight">Join the Future of Hyperlocal Work</h2>
-              <p className="text-sm sm:text-base text-stone-500 dark:text-stone-400 font-medium">Whether you are looking to hire a reliable plumber in minutes or looking to land high-paying gigs in Hubballi, LOKLINK is your absolute terminal.</p>
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">{t('READY TO LAUNCH?')}</span>
+              <h2 className="text-3xl sm:text-5xl font-black text-stone-900 dark:text-white tracking-tight">{t('Join the Future of Hyperlocal Work')}</h2>
+              <p className="text-sm sm:text-base text-stone-500 dark:text-stone-400 font-medium">{t('Whether you are looking to hire a reliable plumber in minutes or looking to land high-paying gigs in Hubballi, LOKLINK is your absolute terminal.')}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-sm mx-auto">
               <Button 
-                onClick={() => handleGetStarted()} 
-                className="h-14 rounded-2xl font-black text-sm uppercase tracking-wider"
+                onClick={() => {
+                  const target = document.getElementById('hero-role-buttons');
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    handleGetStarted();
+                  }
+                }} 
+                className="h-14 rounded-2xl font-black text-sm uppercase tracking-wider bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/25"
               >
-                Get Started Now
+                {t('Get Started Now')}
               </Button>
             </div>
           </div>
@@ -413,13 +424,13 @@ export default function LandingPage() {
           </div>
 
           <p className="text-xs text-stone-400 font-medium">
-            © {new Date().getFullYear()} LOKLINK. Bridging community talent and daily tasks with integrity. All Rights Reserved.
+            © {new Date().getFullYear()} LOKLINK. {t('Bridging community talent and daily tasks with integrity. All Rights Reserved.')}
           </p>
 
           <div className="flex items-center gap-6 text-xs font-bold text-stone-400">
-            <a href="#features" className="hover:text-orange-500 transition-colors">Privacy</a>
-            <a href="#how-it-works" className="hover:text-orange-500 transition-colors">Terms</a>
-            <a href="#testimonials" className="hover:text-orange-500 transition-colors">Security</a>
+            <a href="#features" className="hover:text-orange-500 transition-colors">{t('Privacy')}</a>
+            <a href="#how-it-works" className="hover:text-orange-500 transition-colors">{t('Terms')}</a>
+            <a href="#testimonials" className="hover:text-orange-500 transition-colors">{t('Security')}</a>
           </div>
         </div>
       </footer>

@@ -405,7 +405,7 @@ export function FloatingAIChat() {
             initial={{ opacity: 0, scale: 0.92, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 15 }}
-            transition={{ duration: 0.25, cubicBezier: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="absolute bottom-18 right-0 w-[90vw] sm:w-[380px] h-[500px] glass-strong rounded-[28px] shadow-2xl flex flex-col border border-stone-200/50 dark:border-stone-850 overflow-hidden"
           >
             {/* Header */}

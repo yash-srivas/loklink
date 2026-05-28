@@ -26,11 +26,14 @@ import {
   Phone,
   Send,
   IndianRupee,
-  X
+  X,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { Button, Card, Badge, Input } from './components/ui';
 import { useAuth } from './App';
 import { dbService } from './services/dbService';
+import { geminiService } from './services/geminiService';
 import { User, Review, Job } from './types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -47,6 +50,43 @@ export default function Profile() {
   const [profile, setProfile] = useState<User | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Trust scorecard states
+  const [isTrustLoading, setIsTrustLoading] = useState(false);
+  const [trustScorecard, setTrustScorecard] = useState<{ score: number; summary: string; greenFlags: string[]; redFlags: string[] } | null>(null);
+  const [showTrustModal, setShowTrustModal] = useState(false);
+
+  const handleVerifyWithAi = async () => {
+    if (!profile) return;
+    setIsTrustLoading(true);
+    try {
+      const dataPayload = {
+        name: profile.name,
+        role: profile.role,
+        skills: profile.skills,
+        experience: profile.experience,
+        rating: profile.role === 'worker' ? profile.rating : profile.employerRating,
+        reviewsCount: profile.role === 'worker' ? profile.reviewsCount : profile.employerReviewsCount,
+        dailyWage: profile.dailyWage,
+        city: profile.city,
+        area: profile.area,
+        isVerified: profile.isVerified
+      };
+      
+      const scorecard = await geminiService.generateTrustworthinessSummary(
+        profile.role === 'worker' ? 'worker' : 'employer', 
+        dataPayload
+      );
+      
+      setTrustScorecard(scorecard);
+      setShowTrustModal(true);
+      toast.success("AI Trust Scorecard Generated!");
+    } catch (err) {
+      toast.error("Failed to generate trust assessment.");
+    } finally {
+      setIsTrustLoading(false);
+    }
+  };
   
   // Hiring modal state (if employer is viewing this worker's profile)
   const [showHireModal, setShowHireModal] = useState(false);
@@ -183,6 +223,9 @@ export default function Profile() {
             <div className="text-white space-y-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-black font-display leading-none">{profile.name}</h2>
+                {profile.isVerified && (
+                  <CheckCircle2 size={18} className="text-emerald-500 fill-white dark:fill-stone-900 shrink-0" />
+                )}
                 <Badge variant={isWorker ? "warning" : "default"} className="px-2 py-0.5 text-[8px] tracking-widest font-black uppercase text-stone-950 dark:bg-white dark:text-stone-950">
                   {profile.role}
                 </Badge>
@@ -214,13 +257,40 @@ export default function Profile() {
           
           {/* Trade Details / Stats Left Column */}
           <div className="md:col-span-1 space-y-6">
+            
+            {/* AI Trustworthiness trigger card */}
+            <Card className="p-6 space-y-4 shadow-sm hover:shadow-md border border-stone-200/40 bg-gradient-to-br from-orange-500/5 to-transparent rounded-[24px] relative overflow-hidden">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-orange-500 animate-pulse" size={18} />
+                <h4 className="text-xs font-black uppercase text-stone-400 tracking-wider">LOKLINK AI Trust Guard</h4>
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 font-semibold leading-relaxed">
+                Audits profile completeness, ratings consistency, and verification logs using Gemini AI.
+              </p>
+              <Button 
+                onClick={handleVerifyWithAi}
+                disabled={isTrustLoading}
+                className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black uppercase tracking-wider gap-2 shadow-md shadow-orange-600/10"
+              >
+                {isTrustLoading ? <RefreshCw className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                <span>{isTrustLoading ? 'Auditing profile...' : 'Verify with LOKLINK AI'}</span>
+              </Button>
+            </Card>
+
             <Card className="p-6 space-y-4 shadow-sm hover:shadow-md border border-stone-200/50 dark:border-stone-850 relative overflow-hidden">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider">SPECIALIST INFO</h3>
-                <Badge variant="success" className="text-[8px] font-black tracking-widest uppercase flex items-center gap-0.5 bg-emerald-500 text-white">
-                  <CheckCircle2 size={8} className="fill-white text-emerald-500" />
-                  <span>Verified</span>
-                </Badge>
+                {profile.isVerified ? (
+                  <Badge variant="success" className="text-[8px] font-black tracking-widest uppercase flex items-center gap-0.5 bg-emerald-500 text-white">
+                    <CheckCircle2 size={8} className="fill-white text-emerald-500" />
+                    <span>Verified</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="default" className="text-[8px] font-black tracking-widest uppercase flex items-center gap-0.5 text-stone-500 bg-stone-100 dark:bg-stone-800">
+                    <X size={8} />
+                    <span>Unverified</span>
+                  </Badge>
+                )}
               </div>
               
               {isWorker ? (
@@ -420,6 +490,12 @@ export default function Profile() {
                       </div>
                     </div>
 
+                    {review.comment && (
+                      <p className="text-xs text-stone-600 dark:text-stone-300 font-semibold bg-stone-55/50 dark:bg-stone-850/20 p-3 rounded-2xl border border-stone-100/50 dark:border-stone-800/40 leading-relaxed italic pl-3.5">
+                        "{review.comment}"
+                      </p>
+                    )}
+
                     {/* Criteria breakdowns */}
                     <div className="grid grid-cols-3 gap-2 border-t border-stone-50 dark:border-stone-850 pt-3 text-center text-[10px]">
                       {isWorker ? (
@@ -572,6 +648,113 @@ export default function Profile() {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* TRUST SCORECARD MODAL OVERLAY */}
+      <AnimatePresence>
+        {showTrustModal && trustScorecard && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-white dark:bg-stone-900 border border-stone-100 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="p-6 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-orange-500 animate-pulse" size={18} />
+                  <h3 className="font-display font-black text-lg text-stone-900 dark:text-white">AI Trust Scorecard</h3>
+                </div>
+                <button onClick={() => setShowTrustModal(false)} className="p-2 hover:bg-stone-50 dark:hover:bg-stone-850 rounded-full">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto no-scrollbar space-y-6 flex-1">
+                {/* Radial Gauge Circular Progress */}
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <div className="relative h-28 w-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        stroke="#E2E8F0"
+                        strokeWidth="10"
+                        fill="transparent"
+                        className="dark:stroke-stone-800"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        stroke={trustScorecard.score >= 80 ? "#10B981" : "#F59E0B"}
+                        strokeWidth="10"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={2 * Math.PI * 48 * (1 - trustScorecard.score / 100)}
+                        strokeLinecap="round"
+                        className="transition-all duration-1000 ease-out"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-stone-900 dark:text-white">{trustScorecard.score}</span>
+                      <span className="text-[8px] font-black uppercase text-stone-400 tracking-wider font-sans">Trust Score</span>
+                    </div>
+                  </div>
+                  <Badge variant={trustScorecard.score >= 80 ? "success" : "warning"} className="px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider">
+                    {trustScorecard.score >= 80 ? 'Highly Reliable' : 'Standard Trust'}
+                  </Badge>
+                </div>
+
+                {/* AI assessment text */}
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black uppercase text-stone-400 tracking-wider block">AI Audit Summary</span>
+                  <p className="text-xs text-stone-600 dark:text-stone-300 font-semibold leading-relaxed bg-stone-50 dark:bg-stone-950 p-4 rounded-2xl border border-stone-100/50 dark:border-stone-850">
+                    {trustScorecard.summary}
+                  </p>
+                </div>
+
+                {/* Green Flags */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-450 tracking-wider block">🟢 Green Flags (Positive indicators)</span>
+                  <div className="space-y-1.5 pl-1">
+                    {trustScorecard.greenFlags.map((flag, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs font-bold text-stone-700 dark:text-stone-300">
+                        <span className="text-emerald-600 mt-0.5">•</span>
+                        <span>{flag}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Red Flags */}
+                {trustScorecard.redFlags && trustScorecard.redFlags.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                    <span className="text-[9px] font-black uppercase text-orange-650 tracking-wider block">⚠️ Caution Flags</span>
+                    <div className="space-y-1.5 pl-1">
+                      {trustScorecard.redFlags.map((flag, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs font-bold text-stone-500 dark:text-stone-400">
+                          <span className="text-orange-500 mt-0.5">•</span>
+                          <span>{flag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-stone-50 dark:bg-stone-950 border-t border-stone-100 dark:border-stone-850 rounded-b-[32px] flex justify-end">
+                <Button 
+                  onClick={() => setShowTrustModal(false)}
+                  className="rounded-xl font-bold text-xs px-6 h-10 w-full"
+                >
+                  Close Scorecard
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}

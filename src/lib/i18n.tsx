@@ -5,6 +5,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dbService } from '../services/dbService';
+import { geminiService } from '../services/geminiService';
+
+import enLocale from '../locales/en/translation.json';
+import hiLocale from '../locales/hi/translation.json';
+import knLocale from '../locales/kn/translation.json';
+import taLocale from '../locales/ta/translation.json';
+import teLocale from '../locales/te/translation.json';
+import mrLocale from '../locales/mr/translation.json';
+import bnLocale from '../locales/bn/translation.json';
+import mlLocale from '../locales/ml/translation.json';
 
 export type LanguageCode = 'en' | 'kn' | 'hi' | 'ta' | 'te' | 'mr' | 'bn' | 'ml';
 
@@ -19,506 +29,71 @@ export const LANGUAGES: { code: LanguageCode; label: string }[] = [
   { code: 'ml', label: 'മലയാളം (Malayalam)' }
 ];
 
-// Complete i18n dictionary for consistent UI labels across all 8 languages
-export const i18nDictionary: Record<LanguageCode, Record<string, string>> = {
-  en: {
-    welcome: 'Welcome to LOKLINK',
-    tagline: 'Find the people who keep your city running.',
-    subtagline: 'List a worker. Help someone find work.',
-    selectRole: 'Select Your Role',
-    worker: 'Worker',
-    employer: 'Employer',
-    workerSub: 'A daily wage or skilled worker looking for jobs',
-    employerSub: 'A person or business looking to hire helpers',
-    phoneInput: 'Enter Phone Number',
-    sendOtp: 'Send OTP',
-    verifyOtp: 'Verify OTP',
-    googleSignIn: 'Continue with Google',
-    availability: 'Availability',
-    available: 'Available for Work Today',
-    unavailable: 'Not Available',
-    wageExpectation: 'Daily Wage Expectation',
-    skills: 'Skill Categories',
-    experience: 'Experience (Years)',
-    languagesSpoken: 'Languages Spoken',
-    completedJobs: 'Completed Jobs',
-    earnings: 'Earnings',
-    earningsTracker: 'Earnings Tracker',
-    requestsInbox: 'Job Requests Inbox',
-    myJobs: 'My Jobs',
-    legalAwareness: 'Legal Rights Awareness',
-    legalAssistant: 'AI Legal Assistant',
-    rateEmployer: 'Rate Employer',
-    rateWorker: 'Rate Worker',
-    postJob: 'Post a Job',
-    findWorkers: 'Find Workers',
-    myPosts: 'My Job Posts',
-    notifications: 'Notifications',
-    settings: 'Settings',
-    profile: 'Profile',
-    logout: 'Logout',
-    accept: 'Accept',
-    reject: 'Reject',
-    submit: 'Submit',
-    loading: 'Loading...',
-    save: 'Save',
-    activeJobs: 'Active Jobs',
-    completed: 'Completed',
-    legalRightsTitle: 'Know Your Rights',
-    legalRightsDesc: 'Learn about minimum wage, working hours, safety, and legal protections.',
-    legalRightsFAQ1: 'Employer not paying wages?',
-    legalRightsFAQ1Ans: 'You can demand payment, register a complaint under the Payment of Wages Act, or consult a legal aid coordinator.',
-    legalRightsFAQ2: 'Unsafe working conditions?',
-    legalRightsFAQ2Ans: 'You have the right to refuse unsafe work. Environmental safety is mandated by law.',
-    legalRightsFAQ3: 'Injury on the job?',
-    legalRightsFAQ3Ans: 'Employers are legally liable to pay medical compensation for workplace injuries.',
-    legalBotPlaceholder: 'Ask a legal question in any language...',
-    noNotifications: 'No new notifications',
-    unauthorized: 'Sign in to access this page',
-    workerDashboard: 'Worker Dashboard',
-    findJobs: 'Find Jobs Proximity',
-    legalHelp: 'AI Legal Help',
-    sosBoard: 'SOS Emergency Board',
-    tradeProfile: 'My Trade Profile',
-    employerWorkspace: 'Employer Workspace',
-    findWorkersGrid: 'Find Workers Grid',
-    workerProximityMap: 'Worker Proximity Map',
-    bookmarkedWorkers: 'Bookmarked Workers',
-    employerProfile: 'Employer Profile',
-    listMySpecialty: 'List My Specialty',
-    postJobVacancy: 'Post Job Vacancy',
-    helpCenter: 'Help Center',
-    signOut: 'Sign Out',
-    home: 'Home',
-    explore: 'Explore',
-    listPro: 'List Pro',
-    requests: 'Requests',
-    findPro: 'Find Pro'
-  },
-  kn: {
-    welcome: 'ಲೋಕ್‌ಲಿಂಕ್‌ಗೆ ಸುಸ್ವಾಗತ',
-    tagline: 'ನಿಮ್ಮ ನಗರವನ್ನು ಚಲಿಸುವಂತೆ ಮಾಡುವ ಜನರನ್ನು ಹುಡುಕಿ.',
-    subtagline: 'ಕೆಲಸಗಾರನನ್ನು ಪಟ್ಟಿ ಮಾಡಿ. ಯಾರಿಗಾದರೂ ಕೆಲಸ ಹುಡುಕಲು ಸಹಾಯ ಮಾಡಿ.',
-    selectRole: 'ನಿಮ್ಮ ಪಾತ್ರವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
-    worker: 'ಕೆಲಸಗಾರ',
-    employer: 'ಉದ್ಯೋಗದಾತ',
-    workerSub: 'ದೈನಂದಿನ ಕೂಲಿ ಅಥವಾ ನುರಿತ ಕೆಲಸಗಾರ ಕೆಲಸ ಹುಡುಕುತ್ತಿದ್ದಾರೆ',
-    employerSub: 'ಸಹಾಯಕರನ್ನು ನೇಮಿಸಿಕೊಳ್ಳಲು ಬಯಸುವ ವ್ಯಕ್ತಿ ಅಥವಾ ವ್ಯವಹಾರ',
-    phoneInput: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ',
-    sendOtp: 'OTP ಕಳುಹಿಸಿ',
-    verifyOtp: 'OTP ಪರಿಶೀಲಿಸಿ',
-    googleSignIn: 'ಗೂಗಲ್‌ನೊಂದಿಗೆ ಮುಂದುವರಿಯಿರಿ',
-    availability: 'ಲಭ್ಯತೆ',
-    available: 'ಇಂದು ಕೆಲಸಕ್ಕೆ ಲಭ್ಯವಿದೆ',
-    unavailable: 'ಲಭ್ಯವಿಲ್ಲ',
-    wageExpectation: 'ದೈನಂದಿನ ಕೂಲಿ ನಿರೀಕ್ಷೆ',
-    skills: 'ಕೌಶಲ್ಯ ವಿಭಾಗಗಳು',
-    experience: 'ಅನುಭವ (ವರ್ಷಗಳು)',
-    languagesSpoken: 'ಮಾತನಾಡುವ ಭಾಷೆಗಳು',
-    completedJobs: 'ಪೂರ್ಣಗೊಂಡ ಕೆಲಸಗಳು',
-    earnings: 'ಗಳಿಕೆ',
-    earningsTracker: 'ಗಳಿಕೆ ಟ್ರ್ಯಾಕರ್',
-    requestsInbox: 'ಕೆಲಸದ ವಿನಂತಿಗಳ ಇನ್‌ಬಾಕ್ಸ್',
-    myJobs: 'ನನ್ನ ಕೆಲಸಗಳು',
-    legalAwareness: 'ಕಾನೂನು ಹಕ್ಕುಗಳ ಅರಿವು',
-    legalAssistant: 'AI ಕಾನೂನು ಸಹಾಯಕ',
-    rateEmployer: 'ಉದ್ಯೋಗದಾತರಿಗೆ ರೇಟ್ ಮಾಡಿ',
-    rateWorker: 'ಕೆಲಸಗಾರನಿಗೆ ರೇಟ್ ಮಾಡಿ',
-    postJob: 'ಕೆಲಸವನ್ನು ಪೋಸ್ಟ್ ಮಾಡಿ',
-    findWorkers: 'ಕೆಲಸಗಾರರನ್ನು ಹುಡುಕಿ',
-    myPosts: 'ನನ್ನ ಕೆಲಸದ ಪೋಸ್ಟ್‌ಗಳು',
-    notifications: 'ಅಧಿಸೂಚನೆಗಳು',
-    settings: 'ಸಂಯೋಜನೆಗಳು',
-    profile: 'ಪ್ರೊಫೈಲ್',
-    logout: 'ಲಾಗ್ ಔಟ್',
-    accept: 'ಸ್ವೀಕರಿಸಿ',
-    reject: 'ತಿರಸ್ಕರಿಸಿ',
-    submit: 'ಸಲ್ಲಿಸಿ',
-    loading: 'ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
-    save: 'ಉಳಿಸಿ',
-    activeJobs: 'ಸಕ್ರಿಯ ಕೆಲಸಗಳು',
-    completed: 'ಪೂರ್ಣಗೊಂಡಿದೆ',
-    legalRightsTitle: 'ನಿಮ್ಮ ಹಕ್ಕುಗಳನ್ನು ತಿಳಿಯಿರಿ',
-    legalRightsDesc: 'ಕನಿಷ್ಠ ವೇತನ, ಕೆಲಸದ ಸಮಯ, ಸುರಕ್ಷತೆ ಮತ್ತು ಕಾನೂನು ರಕ್ಷಣೆಗಳ ಬಗ್ಗೆ ತಿಳಿಯಿರಿ.',
-    legalRightsFAQ1: 'ಉದ್ಯೋಗದಾತರು ವೇತನ ಪಾವತಿಸುತ್ತಿಲ್ಲವೇ?',
-    legalRightsFAQ1Ans: 'ನೀವು ಪಾವತಿಯನ್ನು ಒತ್ತಾಯಿಸಬಹುದು, ವೇತನ ಪಾವತಿ ಕಾಯ್ದೆಯಡಿ ದೂರು ದಾಖಲಿಸಬಹುದು ಅಥವಾ ಕಾನೂನು ನೆರವು ಪಡೆಯಬಹುದು.',
-    legalRightsFAQ2: 'ಅಸುರಕ್ಷಿತ ಕೆಲಸದ ಪರಿಸ್ಥಿತಿಗಳಿವೆಯೇ?',
-    legalRightsFAQ2Ans: 'ಅಸುರಕ್ಷಿತ ಕೆಲಸವನ್ನು ನಿರಾಕರಿಸುವ ಹಕ್ಕು ನಿಮಗಿದೆ. ಸುರಕ್ಷಿತ ಪರಿಸರವನ್ನು ಕಾನೂನಿನ ಮೂಲಕ ಕಡ್ಡಾಯಗೊಳಿಸಲಾಗಿದೆ.',
-    legalRightsFAQ3: 'ಕೆಲಸದಲ್ಲಿ ಗಾಯವಾಗಿದೆಯೇ?',
-    legalRightsFAQ3Ans: 'ಕೆಲಸದ ಸ್ಥಳದಲ್ಲಿ ಉಂಟಾಗುವ ಗಾಯಗಳಿಗೆ ವೈದ್ಯಕೀಯ ಪರಿಹಾರವನ್ನು ಪಾವತಿಸಲು ಉದ್ಯೋಗದಾತರು ಕಾನೂನುಬದ್ಧವಾಗಿ ಜವಾಬ್ದಾರರಾಗಿರುತ್ತಾರೆ.',
-    legalBotPlaceholder: 'ಯಾವುದೇ ಭಾಷೆಯಲ್ಲಿ ಕಾನೂನು ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ...',
-    noNotifications: 'ಯಾವುದೇ ಹೊಸ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ',
-    unauthorized: 'ಈ ಪುಟವನ್ನು ಪ್ರವೇಶಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ',
-    workerDashboard: 'ಕೆಲಸಗಾರರ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
-    findJobs: 'ಸಮೀಪದ ಕೆಲಸಗಳನ್ನು ಹುಡುಕಿ',
-    legalHelp: 'AI ಕಾನೂನು ಸಹಾಯ',
-    sosBoard: 'SOS ತುರ್ತು ಮಂಡಳಿ',
-    tradeProfile: 'ನನ್ನ ಉದ್ಯೋಗ ಪ್ರೊಫೈಲ್',
-    employerWorkspace: 'ಉದ್ಯೋಗದಾತರ ಕಾರ್ಯಕ್ಷೇತ್ರ',
-    findWorkersGrid: 'ಕೆಲಸಗಾರರ ಪಟ್ಟಿ',
-    workerProximityMap: 'ಕೆಲಸಗಾರರ ಸಾಮೀಪ್ಯ ನಕ್ಷೆ',
-    bookmarkedWorkers: 'ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಿದ ಕೆಲಸಗಾರರು',
-    employerProfile: 'ಉದ್ಯೋಗದಾತರ ಪ್ರೊಫೈಲ್',
-    listMySpecialty: 'ನನ್ನ ವಿಶೇಷತೆಯನ್ನು ಪಟ್ಟಿ ಮಾಡಿ',
-    postJobVacancy: 'ಕೆಲಸದ ಖಾಲಿಯನ್ನು ಪೋಸ್ಟ್ ಮಾಡಿ',
-    helpCenter: 'ಸಹಾಯ ಕೇಂದ್ರ',
-    signOut: 'ಸೈನ್ ಔಟ್',
-    home: 'ಮುಖಪುಟ',
-    explore: 'ನಕ್ಷೆ',
-    listPro: 'ವೃತ್ತಿಪರ ಪಟ್ಟಿ',
-    requests: 'ವಿನಂತಿಗಳು',
-    findPro: 'ಕೆಲಸಗಾರನನ್ನು ಹುಡುಕಿ'
-  },
-  hi: {
-    welcome: 'लोकलिंक में आपका स्वागत है',
-    tagline: 'अपने शहर को चलाने वाले लोगों को खोजें।',
-    subtagline: 'एक कार्यकर्ता को सूचीबद्ध करें। किसी को काम दिलाने में मदद करें।',
-    selectRole: 'अपनी भूमिका चुनें',
-    worker: 'कामगार',
-    employer: 'नियोक्ता',
-    workerSub: 'दैनिक वेतनभोगी या कुशल कामगार जो काम की तलाश में हैं',
-    employerSub: 'एक व्यक्ति या व्यवसाय जो सहायकों को काम पर रखना चाहते हैं',
-    phoneInput: 'फ़ोन नंबर दर्ज करें',
-    sendOtp: 'ओटीपी भेजें',
-    verifyOtp: 'ओटीपी सत्यापित करें',
-    googleSignIn: 'गूगल के साथ जारी रखें',
-    availability: 'उपलब्धता',
-    available: 'आज काम के लिए उपलब्ध है',
-    unavailable: 'उपलब्ध नहीं है',
-    wageExpectation: 'दैनिक वेतन की उम्मीद',
-    skills: 'कौशल श्रेणियां',
-    experience: 'अनुभव (वर्ष)',
-    languagesSpoken: 'बोली जाने वाली भाषाएं',
-    completedJobs: 'पूरे किए गए कार्य',
-    earnings: 'कमाई',
-    earningsTracker: 'कमाई ट्रैकर',
-    requestsInbox: 'कार्य अनुरोध इनबॉक्स',
-    myJobs: 'मेरे कार्य',
-    legalAwareness: 'कानूनी अधिकार जागरूकता',
-    legalAssistant: 'AI कानूनी सहायक',
-    rateEmployer: 'नियोक्ता को रेट करें',
-    rateWorker: 'कामगार को रेट करें',
-    postJob: 'कार्य पोस्ट करें',
-    findWorkers: 'कामगार खोजें',
-    myPosts: 'मेरे पोस्ट किए गए कार्य',
-    notifications: 'सूचनाएं',
-    settings: 'सेटिंग्स',
-    profile: 'प्रोफाइल',
-    logout: 'लॉग आउट',
-    accept: 'स्वीकार करें',
-    reject: 'अस्वीकार करें',
-    submit: 'जमा करें',
-    loading: 'लोड हो रहा है...',
-    save: 'सहेजें',
-    activeJobs: 'सक्रिय कार्य',
-    completed: 'पूरा हो गया',
-    legalRightsTitle: 'अपने अधिकार जानें',
-    legalRightsDesc: 'न्यूनतम मजदूरी, काम के घंटे, सुरक्षा और कानूनी सुरक्षा के बारे में जानें।',
-    legalRightsFAQ1: 'नियोक्ता मजदूरी का भुगतान नहीं कर रहा है?',
-    legalRightsFAQ1Ans: 'आप भुगतान की मांग कर सकते हैं, मजदूरी भुगतान अधिनियम के तहत शिकायत दर्ज कर सकते हैं, या कानूनी सहायता प्राप्त कर सकते हैं।',
-    legalRightsFAQ2: 'असुरक्षित काम करने की स्थितियां?',
-    legalRightsFAQ2Ans: 'आपके पास असुरक्षित काम को मना करने का अधिकार है। पर्यावरण सुरक्षा कानून द्वारा अनिवार्य है।',
-    legalRightsFAQ3: 'काम पर चोट लगी?',
-    legalRightsFAQ3Ans: 'कार्यस्थल पर लगी चोटों के लिए चिकित्सा मुआवजा देने के लिए नियोक्ता कानूनी रूप से उत्तरदायी हैं।',
-    legalBotPlaceholder: 'किसी भी भाषा में कानूनी सवाल पूछें...',
-    noNotifications: 'कोई नई सूचना नहीं है',
-    unauthorized: 'इस पेज पर जाने के लिए साइन इन करें',
-    workerDashboard: 'कामगार डैशबोर्ड',
-    findJobs: 'नजदीकी कार्य खोजें',
-    legalHelp: 'AI कानूनी सहायता',
-    sosBoard: 'SOS आपातकालीन बोर्ड',
-    tradeProfile: 'मेरी ट्रेड प्रोफाइल',
-    employerWorkspace: 'नियोक्ता कार्यक्षेत्र',
-    findWorkersGrid: 'कामगार खोजें ग्रिड',
-    workerProximityMap: 'कामगार नजदीकी नक्शा',
-    bookmarkedWorkers: 'बुकमार्क किए गए कामगार',
-    employerProfile: 'नियोक्ता प्रोफाइल',
-    listMySpecialty: 'मेरी विशेषता सूचीबद्ध करें',
-    postJobVacancy: 'नौकरी रिक्ति पोस्ट करें',
-    helpCenter: 'सहायता केंद्र',
-    signOut: 'लॉग आउट',
-    home: 'होम',
-    explore: 'खोजें',
-    listPro: 'विशेषता सूची',
-    requests: 'अनुरोध',
-    findPro: 'कामगार ढूंढें'
-  },
-  ta: {
-    welcome: 'லோக்லிங்க்-ற்கு உங்களை வரவேற்கிறோம்',
-    tagline: 'உங்கள் நகரத்தை இயக்கும் மக்களைக் கண்டறியுங்கள்.',
-    subtagline: 'ஒரு தொழிலாளியைப் பட்டியலிடுங்கள். ஒருவருக்கு வேலை கிடைக்க உதவுங்கள்.',
-    selectRole: 'உங்கள் பங்கைத் தேர்வுசெய்யவும்',
-    worker: 'தொழிலாளி',
-    employer: 'வேலை வழங்குபவர்',
-    workerSub: 'தினக்கூலி அல்லது திறமையான தொழிலாளி வேலை தேடுகிறார்',
-    employerSub: 'உதவியாளர்களை நியமிக்க விரும்பும் நபர் அல்லது நிறுவனம்',
-    phoneInput: 'தொலைபேசி எண்ணை உள்ளிடவும்',
-    sendOtp: 'OTP அனுப்பு',
-    verifyOtp: 'OTP சரிபார்',
-    googleSignIn: 'கூகுள் மூலம் தொடரவும்',
-    availability: 'கிடைக்கும் தன்மை',
-    available: 'இன்று வேலைக்குக் கிடைக்கிறார்',
-    unavailable: 'வேலைக்கு வரமுடியாது',
-    wageExpectation: 'தினசரி கூலி எதிர்பார்ப்பு',
-    skills: 'திறன் பிரிவுகள்',
-    experience: 'அனுபவம் (ஆண்டுகள்)',
-    languagesSpoken: 'பேசும் மொழிகள்',
-    completedJobs: 'முடிந்த வேலைகள்',
-    earnings: 'வருவாய்',
-    earningsTracker: 'வருவாய் கண்காணிப்பான்',
-    requestsInbox: 'வேலை கோரிக்கைகள் பெட்டி',
-    myJobs: 'எனது வேலைகள்',
-    legalAwareness: 'சட்ட உரிமைகள் விழிப்புணர்வு',
-    legalAssistant: 'AI சட்ட உதவியாளர்',
-    rateEmployer: 'முதலாளியை மதிப்பிடுக',
-    rateWorker: 'தொழிலாளியை மதிப்பிடுக',
-    postJob: 'வேலை பதிவிடு',
-    findWorkers: 'தொழிலாளர்களைத் தேடு',
-    myPosts: 'எனது வேலை பதிவுகள்',
-    notifications: 'அறிவிப்புகள்',
-    settings: 'அமைப்புகள்',
-    profile: 'சுயவிவரம்',
-    logout: 'வெளியேறு',
-    accept: 'ஏற்றுக்கொள்',
-    reject: 'நிராகரி',
-    submit: 'சமர்ப்பி',
-    loading: 'ஏற்றப்படுகிறது...',
-    save: 'சேமி',
-    activeJobs: 'செயலில் உள்ள வேலைகள்',
-    completed: 'முடிந்தது',
-    legalRightsTitle: 'உரிமைகளை அறிந்திடுங்கள்',
-    legalRightsDesc: 'குறைந்தபட்ச ஊதியம், வேலை நேரம், பாதுகாப்பு மற்றும் சட்டப் பாதுகாப்பு பற்றி அறியவும்.',
-    legalRightsFAQ1: 'முதலாளி சம்பளம் தரவில்லையா?',
-    legalRightsFAQ1Ans: 'நீங்கள் ஊதியத்தை கோரலாம், ஊதிய வழங்கல் சட்டத்தின் கீழ் புகார் செய்யலாம் அல்லது சட்ட உதவி பெறலாம்.',
-    legalRightsFAQ2: 'பாதுகாப்பற்ற வேலைச் சூழலா?',
-    legalRightsFAQ2Ans: 'பாதுகாப்பற்ற வேலையை மறுக்க உங்களுக்கு உரிமை உண்டு. வேலைப் பாதுகாப்பு சட்டபூர்வமாக கட்டாயமாக்கப்பட்டுள்ளது.',
-    legalRightsFAQ3: 'வேலையில் காயம் ஏற்பட்டதா?',
-    legalRightsFAQ3Ans: 'வேலை செய்யும் இடத்தில் ஏற்படும் காயங்களுக்கு மருத்துவ இழப்பீடு வழங்க முதலாளிகள் சட்டப்பூர்வமாக கடமைப்பட்டுள்ளனர்.',
-    legalBotPlaceholder: 'எந்த மொழியிலும் சட்ட கேள்விகளைக் கேளுங்கள்...',
-    noNotifications: 'புதிய அறிவிப்புகள் இல்லை',
-    unauthorized: 'இப்பக்கத்தை அணுக உள்நுழையவும்'
-  },
-  te: {
-    welcome: 'లోక్‌లింక్‌కు స్వాగతం',
-    tagline: 'మీ నగరాన్ని నడిపించే వ్యక్తులను కనుగొనండి.',
-    subtagline: 'ఒక కార్మికుడిని జాబితా చేయండి. ఎవరికైనా పని కనుగొనడంలో సహాయపడండి.',
-    selectRole: 'మీ పాత్రను ఎంచుకోండి',
-    worker: 'కార్మికుడు',
-    employer: 'యజమాని',
-    workerSub: 'రోజువారీ కూలీ లేదా నైపుణ్యం కలిగిన కార్మికుడు పని కోసం వెతుకుతున్నారు',
-    employerSub: 'సహాయకులను నియమించుకోవాలని చూస్తున్న వ్యక్తి లేదా వ్యాపారం',
-    phoneInput: 'ఫోన్ నంబర్ నమోదు చేయండి',
-    sendOtp: 'OTP పంపండి',
-    verifyOtp: 'OTP ధృవీకరించండి',
-    googleSignIn: 'గూగుల్‌తో కొనసాగండి',
-    availability: 'అందుబాటు',
-    available: 'ఈ రోజు పనికి అందుబాటులో ఉన్నారు',
-    unavailable: 'అందుబాటులో లేరు',
-    wageExpectation: 'రోజువారీ కూలి నిరీక్షణ',
-    skills: 'నైపుణ్యాల విభాగాలు',
-    experience: 'అనుభవం (సంవత్సరాలు)',
-    languagesSpoken: 'మాట్లాడే భాషలు',
-    completedJobs: 'పూర్తయిన పనులు',
-    earnings: 'సంపాదన',
-    earningsTracker: 'సంపాదన ట్రాకర్',
-    requestsInbox: 'పని అభ్యర్థనల ఇన్బాక్స్',
-    myJobs: 'నా పనులు',
-    legalAwareness: 'చట్టపరమైన హక్కుల అవగాహన',
-    legalAssistant: 'AI చట్టపరమైన సహాయకుడు',
-    rateEmployer: 'యజమానికి రేటింగ్ ఇవ్వండి',
-    rateWorker: 'కార్మికుడికి రేటింగ్ ఇవ్వండి',
-    postJob: 'పనిని పోస్ట్ చేయండి',
-    findWorkers: 'కార్మికులను కనుగొనండి',
-    myPosts: 'నా పని పోస్ట్లు',
-    notifications: 'నోటిఫికేషన్లు',
-    settings: 'సెట్టింగులు',
-    profile: 'ప్రొఫైల్',
-    logout: 'లాగ్ అవుట్',
-    accept: 'అంగీకరించు',
-    reject: 'తిరస్కరించు',
-    submit: 'సమర్పించు',
-    loading: 'లోడ్ అవుతోంది...',
-    save: 'సేవ్ చేయి',
-    activeJobs: 'యాక్టివ్ పనులు',
-    completed: 'పూర్తయింది',
-    legalRightsTitle: 'మీ హక్కులను తెలుసుకోండి',
-    legalRightsDesc: 'కనీస వేతనం, పని గంటలు, భద్రత మరియు చట్టపరమైన రక్షణల గురించి తెలుసుకోండి.',
-    legalRightsFAQ1: 'యజమాని వేతనం చెల్లించడం లేదా?',
-    legalRightsFAQ1Ans: 'మీరు చెల్లింపును డిమాండ్ చేయవచ్చు, వేతనాల చెల్లింపు చట్టం కింద ఫిర్యాదు చేయవచ్చు లేదా ఉచిత న్యాయ సహాయాన్ని సంప్రదించవచ్చు.',
-    legalRightsFAQ2: 'అసురక్షిత పని పరిస్థితులా?',
-    legalRightsFAQ2Ans: 'అసురక్షిత పనిని తిరస్కరించే హక్కు మీకు ఉంది. పని భద్రత చట్టపరంగా తప్పనిసరి.',
-    legalRightsFAQ3: 'పనిలో గాయపడ్డారా?',
-    legalRightsFAQ3Ans: 'పని ప్రదేశంలో జరిగే గాయాలకు వైద్య పరిహారం చెల్లించడానికి యజమానులే చట్టపరంగా బాధ్యులు.',
-    legalBotPlaceholder: 'ఏ భాషలోనైనా చట్టపరమైన ప్రశ్న అడగండి...',
-    noNotifications: 'కొత్త నోటిఫికేషన్లు లేవు',
-    unauthorized: 'ఈ పేజీని యాక్సెస్ చేయడానికి సైన్ ఇన్ చేయండి'
-  },
-  mr: {
-    welcome: 'लोकलिंकमध्ये आपले स्वागत आहे',
-    tagline: 'आपले शहर चालवणाऱ्या लोकांना शोधा.',
-    subtagline: 'एका कामगाराची नोंदणी करा. कोणालातरी काम शोधण्यात मदत करा.',
-    selectRole: 'तुमची भूमिका निवडा',
-    worker: 'कामगार',
-    employer: 'नियोक्ता',
-    workerSub: 'रोजंदारीवरील किंवा कुशल कामगार कामाच्या शोधात आहेत',
-    employerSub: 'मदतनीस कामावर ठेवू इच्छिणारी व्यक्ती किंवा व्यवसाय',
-    phoneInput: 'फोन नंबर टाका',
-    sendOtp: 'ओटीपी पाठवा',
-    verifyOtp: 'ओटीपी तपासा',
-    googleSignIn: 'गूगलसह सुरू ठेवा',
-    availability: 'उपलब्धता',
-    available: 'आज कामासाठी उपलब्ध आहे',
-    unavailable: 'उपलब्ध नाही',
-    wageExpectation: 'दैनिक वेतनाची अपेक्षा',
-    skills: 'कौशल्य श्रेणी',
-    experience: 'अनुभव (वर्षे)',
-    languagesSpoken: 'बोलल्या जाणार्‍या भाषा',
-    completedJobs: 'पूर्ण झालेली कामे',
-    earnings: 'कमाई',
-    earningsTracker: 'कमाई ट्रॅकर',
-    requestsInbox: 'काम विनंती इनबॉक्स',
-    myJobs: 'माझी कामे',
-    legalAwareness: 'कायदेशीर हक्क जागरूकता',
-    legalAssistant: 'AI कायदेशीर सहाय्यक',
-    rateEmployer: 'नियोक्ताला रेट करा',
-    rateWorker: 'कामगाराला रेट करा',
-    postJob: 'काम पोस्ट करा',
-    findWorkers: 'कामगार शोधा',
-    myPosts: 'माझ्या काम पोस्ट्स',
-    notifications: 'सूचना',
-    settings: 'सेटिंग्ज',
-    profile: 'प्रोफाइल',
-    logout: 'लॉग आउट',
-    accept: 'स्वीकार करा',
-    reject: 'नकार द्या',
-    submit: 'सादर करा',
-    loading: 'लोड होत आहे...',
-    save: 'जतन करा',
-    activeJobs: 'सक्रिय कामे',
-    completed: 'पूर्ण झाले',
-    legalRightsTitle: 'आपले हक्क जाणून घ्या',
-    legalRightsDesc: 'किमान वेतन, कामाचे तास, सुरक्षितता आणि कायदेशीर संरक्षणाबद्दल जाणून घ्या.',
-    legalRightsFAQ1: 'नियोक्ता वेतन देत नाही आहे?',
-    legalRightsFAQ1Ans: 'तुम्ही पगाराची मागणी करू शकता, वेतन अधिनियम अंतर्गत तक्रार नोंदवू शकता किंवा विनामूल्य कायदेशीर सल्ला घेऊ शकता.',
-    legalRightsFAQ2: 'असुरक्षित कामाची जागा?',
-    legalRightsFAQ2Ans: 'तुम्हाला असुरक्षित काम नाकारण्याचा अधिकार आहे. कामाच्या ठिकाणी सुरक्षा कायद्याने बंधनकारक आहे.',
-    legalRightsFAQ3: 'कामावर दुखापत झाली?',
-    legalRightsFAQ3Ans: 'कामाच्या ठिकाणी झालेल्या दुखापतींसाठी वैद्यकीय भरपाई देण्यास नियोक्ता कायदेशीररित्या बांधील आहेत.',
-    legalBotPlaceholder: 'कोणत्याही भाषेत कायदेशीर प्रश्न विचारा...',
-    noNotifications: 'नवीन सूचना नाहीत',
-    unauthorized: 'या पेजवर जाण्यासाठी लॉगिन करा'
-  },
-  bn: {
-    welcome: 'লোকলিংকে স্বাগতম',
-    tagline: 'আপনার শহরকে সচল রাখা মানুষদের খুঁজে নিন।',
-    subtagline: 'শ্রমিক তালিকাভুক্ত করুন। কাউকে কাজ পেতে সাহায্য করুন।',
-    selectRole: 'আপনার ভূমিকা নির্বাচন করুন',
-    worker: 'কর্মী',
-    employer: 'নিয়োগকর্তা',
-    workerSub: 'দৈনিক মজুরি বা দক্ষ কর্মী কাজের সন্ধান করছেন',
-    employerSub: 'সহকারী নিয়োগ করতে ইচ্ছুক ব্যক্তি বা ব্যবসা',
-    phoneInput: 'ফোন নম্বর লিখুন',
-    sendOtp: 'ওটিপি পাঠান',
-    verifyOtp: 'ওটিপি যাচাই করুন',
-    googleSignIn: 'গুগল দিয়ে এগিয়ে যান',
-    availability: 'উপলব্ধতা',
-    available: 'আজ কাজের জন্য উপলব্ধ',
-    unavailable: 'উপলব্ধ নেই',
-    wageExpectation: 'দৈনিক মজুরির প্রত্যাশা',
-    skills: 'দক্ষতা বিভাগ',
-    experience: 'অভিজ্ঞতা (বছর)',
-    languagesSpoken: 'কথ্য ভাষা',
-    completedJobs: 'সম্পন্ন কাজ',
-    earnings: 'উপার্জন',
-    earningsTracker: 'উপার্জন ট্র্যাকার',
-    requestsInbox: 'কাজের অনুরোধ ইনবক্স',
-    myJobs: 'আমার কাজ',
-    legalAwareness: 'আইনি অধিকার সচেতনতা',
-    legalAssistant: 'AI আইনি সহকারী',
-    rateEmployer: 'নিয়োগকর্তাকে রেট দিন',
-    rateWorker: 'কর্মীকে রেট দিন',
-    postJob: 'কাজ পোস্ট করুন',
-    findWorkers: 'কর্মী খুঁজুন',
-    myPosts: 'আমার কাজ পোস্টসমূহ',
-    notifications: 'বিজ্ঞপ্তি',
-    settings: 'সেটিংস',
-    profile: 'প্রোফাইল',
-    logout: 'লগ আউট',
-    accept: 'গ্রহণ করুন',
-    reject: 'প্রত্যাখ্যান করুন',
-    submit: 'জমা দিন',
-    loading: 'লোড হচ্ছে...',
-    save: 'সংরক্ষণ করুন',
-    activeJobs: 'সক্রিয় কাজ',
-    completed: 'সম্পন্ন',
-    legalRightsTitle: 'আপনার অধিকার জানুন',
-    legalRightsDesc: 'ন্যূনতম মজুরি, কাজের সময়, নিরাপত্তা এবং আইনি সুরক্ষা সম্পর্কে জানুন।',
-    legalRightsFAQ1: 'নিয়োগকর্তা বেতন দিচ্ছেন না?',
-    legalRightsFAQ1Ans: 'আপনি বেতনের দাবি করতে পারেন, মজুরি প্রদান আইনের অধীনে অভিযোগ দায়ের করতে পারেন বা আইনি সাহায্য নিতে পারেন।',
-    legalRightsFAQ2: 'অনিরাপদ কাজের পরিবেশ?',
-    legalRightsFAQ2Ans: 'অনিরাপদ কাজ প্রত্যাখ্যান করার অধিকার আপনার আছে। কর্মক্ষেত্রের নিরাপত্তা আইনত বাধ্যতামূলক।',
-    legalRightsFAQ3: 'কাজে আঘাত পেয়েছেন?',
-    legalRightsFAQ3Ans: 'কর্মক্ষেত্রে আঘাতের জন্য চিকিৎসার ক্ষতিপূরণ দিতে নিয়োগকর্তারা আইনত বাধ্য।',
-    legalBotPlaceholder: 'যে কোনো ভাষায় আইনি প্রশ্ন জিজ্ঞাসা করুন...',
-    noNotifications: 'কোনো নতুন বিজ্ঞপ্তি নেই',
-    unauthorized: 'এই পেজে যেতে লগইন করুন'
-  },
-  ml: {
-    welcome: 'ലോക്‌ലിങ്കിലേക്ക് സ്വാഗതം',
-    tagline: 'നിങ്ങളുടെ നഗരത്തെ ചലിപ്പിക്കുന്ന ആളുകളെ കണ്ടെത്തുക.',
-    subtagline: 'തൊഴിലാളിയെ ലിസ്റ്റ് ചെയ്യുക. ജോലി കണ്ടെത്താൻ സഹായിക്കുക.',
-    selectRole: 'നിങ്ങളുടെ റോൾ തിരഞ്ഞെടുക്കുക',
-    worker: 'തൊഴിലാളി',
-    employer: 'തൊഴിലുടമ',
-    workerSub: 'ദിവസക്കൂലി അല്ലെങ്കിൽ വിദഗ്ദ്ധ തൊഴിലാളി ജോലി അന്വേഷിക്കുന്നു',
-    employerSub: 'സഹായികളെ നിയമിക്കാൻ ആഗ്രഹിക്കുന്ന വ്യക്തി അല്ലെങ്കിൽ ബിസിനസ്സ്',
-    phoneInput: 'ഫോൺ നമ്പർ നൽകുക',
-    sendOtp: 'OTP അയക്കുക',
-    verifyOtp: 'OTP പരിശോധിക്കുക',
-    googleSignIn: 'ഗൂഗിൾ വഴി തുടരുക',
-    availability: 'ലഭ്യത',
-    available: 'ഇന്ന് ജോലിക്ക് ലഭ്യമാണ്',
-    unavailable: 'ലഭ്യമല്ല',
-    wageExpectation: 'ദിവസക്കൂലി പ്രതീക്ഷ',
-    skills: 'പ്രത്യേകതകൾ',
-    experience: 'പരിചയം (വർഷം)',
-    languagesSpoken: 'സംസാരിക്കുന്ന ഭാഷകൾ',
-    completedJobs: 'പൂർത്തിയാക്കിയ ജോലികൾ',
-    earnings: 'വരുമാനം',
-    earningsTracker: 'വരുമാന ട്രാക്കർ',
-    requestsInbox: 'ജോലി ആവശ്യങ്ങളുടെ ഇൻബോക്സ്',
-    myJobs: 'എന്റെ ജോലികൾ',
-    legalAwareness: 'നിയമപരമായ അവകാശ ബോധവൽക്കരണം',
-    legalAssistant: 'AI നിയമ സഹായി',
-    rateEmployer: 'തൊഴിലുടമയെ റേറ്റുചെയ്യുക',
-    rateWorker: 'തൊഴിലാളിയെ റേറ്റുചെയ്യുക',
-    postJob: 'ജോലി പോസ്റ്റ് ചെയ്യുക',
-    findWorkers: 'തൊഴിലാളികളെ കണ്ടെത്തുക',
-    myPosts: 'എന്റെ ജോലി പോസ്റ്റുകൾ',
-    notifications: 'അറിയിപ്പുകൾ',
-    settings: 'ക്രമീകരണങ്ങൾ',
-    profile: 'പ്രൊഫൈൽ',
-    logout: 'ലോഗ് ഔട്ട്',
-    accept: 'സ്വീകരിക്കുക',
-    reject: 'നിരസിക്കുക',
-    submit: 'സമർപ്പിക്കുക',
-    loading: 'ലോഡുചെയ്യുന്നു...',
-    save: 'സംരക്ഷിക്കുക',
-    activeJobs: 'നിലവിലുള്ള ജോലികൾ',
-    completed: 'പൂർത്തിയായി',
-    legalRightsTitle: 'അവകാശങ്ങൾ അറിയുക',
-    legalRightsDesc: 'കുറഞ്ഞ വേതനം, ജോലി സമയം, സുരക്ഷ, നിയമപരമായ സംരക്ഷണം എന്നിവയെക്കുറിച്ച് അറിയുക.',
-    legalRightsFAQ1: 'തൊഴിലുടമ വേതനം നൽകുന്നില്ലേ?',
-    legalRightsFAQ1Ans: 'നിങ്ങൾക്ക് വേതനം ആവശ്യപ്പെടാം, വേതന പേയ്‌മെന്റ് നിയമപ്രകാരം പരാതി നൽകാം അല്ലെങ്കിൽ നിയമസഹായം തേടാം.',
-    legalRightsFAQ2: 'അപകടകരമായ ജോലി സാഹചര്യങ്ങൾ?',
-    legalRightsFAQ2Ans: 'സുരക്ഷിതമല്ലാത്ത ജോലി നിരസിക്കാൻ നിങ്ങൾക്ക് അവകാശമുണ്ട്. തൊഴിൽ സുരക്ഷ നിയമപരമായി നിർബന്ധമാണ്.',
-    legalRightsFAQ3: 'ജോലിക്കിടെ പരിക്കേറ്റോ?',
-    legalRightsFAQ3Ans: 'ജോലിസ്ഥലത്തുണ്ടാകുന്ന പരിക്കുകൾക്ക് ചികിത്സാ നഷ്ടപരിഹാരം നൽകാൻ തൊഴിലുടമകൾ നിയമപരമായി ബാധ്യസ്ഥരാണ്.',
-    legalBotPlaceholder: 'ഏത് ഭാഷയിലും നിയമപരമായ ചോദ്യം ചോദിക്കുക...',
-    noNotifications: 'പുതിയ അറിയിപ്പുകൾ ഇല്ല',
-    unauthorized: 'ഈ പേജ് ആക്സസ് ചെയ്യാൻ ലോഗിൻ ചെയ്യുക'
+function flattenObject(obj: any, prefix = ''): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const val = obj[key];
+      const newKey = prefix ? `${prefix}.${key}` : key;
+      if (typeof val === 'object' && val !== null) {
+        Object.assign(result, flattenObject(val, newKey));
+      } else {
+        result[newKey] = val;
+        result[key.toLowerCase()] = val;
+        result[key] = val;
+      }
+    }
   }
+  return result;
+}
+
+export const i18nDictionary: Record<LanguageCode, Record<string, string>> = {
+  en: flattenObject(enLocale),
+  hi: flattenObject(hiLocale),
+  kn: flattenObject(knLocale),
+  ta: flattenObject(taLocale),
+  te: flattenObject(teLocale),
+  mr: flattenObject(mrLocale),
+  bn: flattenObject(bnLocale),
+  ml: flattenObject(mlLocale)
 };
+
+export async function translateLegalRights(text: string, targetLanguage: string): Promise<string> {
+  if (!text || !text.trim() || targetLanguage === 'en') return text;
+  
+  const cacheKey = `loklink_libre_${targetLanguage}_${btoa(text.substring(0, 30))}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch("https://libretranslate.com/translate", {
+      method: "POST",
+      body: JSON.stringify({
+        q: text,
+        source: "en",
+        target: targetLanguage,
+        format: "text"
+      }),
+      headers: { "Content-Type": "application/json" }
+    });
+    const data = await response.json();
+    if (data.translatedText) {
+      localStorage.setItem(cacheKey, data.translatedText);
+      return data.translatedText;
+    }
+  } catch (e) {
+    console.warn("LibreTranslate fetch failed, using internal AI fallback:", e);
+  }
+  
+  // Dynamic Gemini translation fallback
+  try {
+    const geminiVal = await geminiService.translateText(text, targetLanguage);
+    localStorage.setItem(cacheKey, geminiVal);
+    return geminiVal;
+  } catch (err) {
+    return text;
+  }
+}
 
 // React Context for Multi-language Translator
 interface LanguageContextType {
@@ -529,14 +104,23 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children, currentUserId }: { children: React.ReactNode, currentUserId?: string }) {
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<LanguageCode>('en');
 
-  // Load language preference from profile or localStorage
+  // Load language preference from profile or localStorage or browser
   useEffect(() => {
     const stored = localStorage.getItem('loklink_lang') || localStorage.getItem('guest_lang');
     if (stored) {
       setLanguage(stored as LanguageCode);
+    } else {
+      const browserLang = navigator.language.substring(0, 2) as LanguageCode;
+      const supported = LANGUAGES.some(l => l.code === browserLang);
+      if (supported) {
+        setLanguage(browserLang);
+        localStorage.setItem('guest_lang', browserLang);
+      } else {
+        setLanguage('en');
+      }
     }
   }, []);
 
@@ -555,8 +139,57 @@ export function LanguageProvider({ children, currentUserId }: { children: React.
     }
   };
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+    window.addEventListener('loklink-db-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('loklink-db-updated', handleUpdate);
+    };
+  }, []);
+
   const t = (key: string): string => {
-    return i18nDictionary[language]?.[key] || i18nDictionary['en']?.[key] || key;
+    if (!key || !key.trim()) return '';
+    
+    const normalizedKey = key.trim();
+    
+    // If target language is English, return the key itself or the dictionary value
+    if (language === 'en') {
+      return i18nDictionary['en']?.[normalizedKey] || i18nDictionary['en']?.[normalizedKey.toLowerCase()] || normalizedKey;
+    }
+
+    // 1. Check static dictionary for translation
+    const staticTranslation = i18nDictionary[language]?.[normalizedKey] || i18nDictionary[language]?.[normalizedKey.toLowerCase()];
+    if (staticTranslation) return staticTranslation;
+
+    // 2. Check cached dynamic translation in localStorage
+    const cacheKey = `loklink_t_${language}_${normalizedKey}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+
+    // 3. Trigger lazy background translation via Gemini
+    const pendingKey = `loklink_pending_${language}_${normalizedKey}`;
+    if (!localStorage.getItem(pendingKey)) {
+      localStorage.setItem(pendingKey, 'true');
+      geminiService.translateText(normalizedKey, language).then(translatedText => {
+        if (translatedText && translatedText !== normalizedKey) {
+          localStorage.setItem(cacheKey, translatedText);
+          localStorage.removeItem(pendingKey);
+          window.dispatchEvent(new Event('loklink-db-updated'));
+        } else {
+          localStorage.setItem(cacheKey, normalizedKey);
+          localStorage.removeItem(pendingKey);
+        }
+      }).catch((err) => {
+        console.error("Lazy translation error for key:", normalizedKey, err);
+        localStorage.removeItem(pendingKey);
+      });
+    }
+
+    return i18nDictionary['en']?.[normalizedKey] || i18nDictionary['en']?.[normalizedKey.toLowerCase()] || normalizedKey;
   };
 
   return (
@@ -574,30 +207,7 @@ export function useTranslation() {
   return context;
 }
 
-// LibreTranslate integration with robust error handling and loading spinner fallback support
 export async function translateText(text: string, targetLanguage: LanguageCode): Promise<string> {
-  if (!text.trim() || targetLanguage === 'en') return text;
-
-  try {
-    const response = await fetch('https://libretranslate.com/translate', {
-      method: 'POST',
-      body: JSON.stringify({
-        q: text,
-        source: 'en',
-        target: targetLanguage,
-        format: 'text'
-      }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    if (!response.ok) {
-      throw new Error(`LibreTranslate returned status ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.translatedText || text;
-  } catch (err) {
-    console.warn('LibreTranslate failed, falling back to original English text:', err);
-    return text;
-  }
+  if (!text || !text.trim() || targetLanguage === 'en') return text;
+  return geminiService.translateText(text, targetLanguage);
 }

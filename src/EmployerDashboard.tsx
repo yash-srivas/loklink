@@ -25,7 +25,9 @@ import {
   ArrowRight, 
   User as UserIcon,
   Phone,
-  BookOpen
+  BookOpen,
+  Download,
+  TrendingUp
 } from 'lucide-react';
 import { Button, Card, Input, Badge } from './components/ui';
 import { useAuth } from './App';
@@ -45,8 +47,8 @@ export default function EmployerDashboard() {
   const { t } = useTranslation();
   const { openAddListing } = useModals();
   
-  // Tab states: 'overview' | 'find-workers' | 'post-job' | 'my-posts' | 'ratings' | 'ai-assistant'
-  const [activeTab, setActiveTab] = useState<'overview' | 'find-workers' | 'post-job' | 'my-posts' | 'ratings' | 'ai-assistant'>('overview');
+  // Tab states: 'overview' | 'find-workers' | 'post-job' | 'my-posts' | 'ratings' | 'ai-assistant' | 'analytics'
+  const [activeTab, setActiveTab] = useState<'overview' | 'find-workers' | 'post-job' | 'my-posts' | 'ratings' | 'ai-assistant' | 'analytics'>('overview');
   
   const [employerProfile, setEmployerProfile] = useState<any>(null);
   const [workers, setWorkers] = useState<any[]>([]);
@@ -58,6 +60,126 @@ export default function EmployerDashboard() {
 
   // Cache for worker profile lookups (workerId -> User)
   const [workerCache, setWorkerCache] = useState<Record<string, User>>({});
+
+  const expensesLog = useMemo(() => {
+    const completed = jobs.filter(j => j.status === 'completed');
+    const active = jobs.filter(j => j.status === 'accepted' || j.status === 'worker_completed');
+    const totalExpenditures = completed.reduce((sum, j) => sum + (j.wage || 0), 0);
+    const grossTotal = totalExpenditures;
+    const commissionTotal = grossTotal * 0.05;
+    const netTotal = grossTotal + commissionTotal;
+
+    const monWage = completed[0] ? completed[0].wage : 0;
+    const tueWage = completed[1] ? completed[1].wage : 0;
+    const wedWage = completed[2] ? completed[2].wage : 0;
+    const thuWage = completed[3] ? completed[3].wage : 0;
+    const friWage = completed[4] ? completed[4].wage : 0;
+
+    // Weekly and Monthly expenditures
+    const weeklyList = [
+      { day: 'Mon', wage: monWage },
+      { day: 'Tue', wage: tueWage },
+      { day: 'Wed', wage: wedWage },
+      { day: 'Thu', wage: thuWage },
+      { day: 'Fri', wage: friWage }
+    ];
+
+    const monthlyList = [
+      { month: 'Jan', wage: 0 },
+      { month: 'Feb', wage: 0 },
+      { month: 'Mar', wage: 0 },
+      { month: 'Apr', wage: 0 },
+      { month: 'May', wage: grossTotal }
+    ];
+
+    return {
+      totalExpenditures,
+      grossTotal,
+      commissionTotal,
+      netTotal,
+      completedCount: completed.length,
+      activeCount: active.length,
+      weeklyList,
+      monthlyList
+    };
+  }, [jobs]);
+
+  const handleDownloadExpenseReport = () => {
+    if (!employerProfile || jobs.length === 0) {
+      toast.error("No historical transactions available to compile report.");
+      return;
+    }
+
+    const completedJobs = jobs.filter(j => j.status === 'completed');
+    const activeJobs = jobs.filter(j => j.status === 'accepted' || j.status === 'worker_completed');
+    const openJobs = jobs.filter(j => j.status === 'open');
+
+    const grossTotal = completedJobs.reduce((sum, j) => sum + (j.wage || 500), 0);
+    const commissionTotal = grossTotal * 0.05;
+    const netTotal = grossTotal + commissionTotal;
+
+    let report = `===========================================================
+                      LOKLINK EXPENDITURE STATEMENT
+===========================================================
+Generated: \${new Date().toLocaleString()}
+Reference ID: INV-\${Math.floor(100000 + Math.random() * 900000)}
+
+EMPLOYER METADATA
+-----------------------------------------------------------
+Name: \${employerProfile.name.toUpperCase()}
+Company/Hiring Purpose: \${employerProfile.companyName || 'Residential Hirer'}
+City: \${employerProfile.city}
+Area Location: \${employerProfile.area}
+
+FINANCIAL SUMMARY
+-----------------------------------------------------------
+Gross Expenditures:        ₹\${grossTotal}
+Escrow Platform Fees (5%): ₹\${commissionTotal.toFixed(0)}
+Total Net Cost:            ₹\${netTotal.toFixed(0)}
+Completed Campaigns:       \${completedJobs.length}
+Active Pending Escrows:    \${activeJobs.length}
+Open Search Listings:      \${openJobs.length}
+Wallet Balance Remaining:   ₹\${employerProfile.walletBalance || 0}
+
+ITEMIZED EXPENDITURES LEDGER
+-----------------------------------------------------------
+Date         | Task Title               | Gross  | Fee (5%) | Total  | Hired Specialist
+-----------------------------------------------------------
+`;
+
+    completedJobs.forEach(job => {
+      const dateStr = job.date || new Date().toISOString().split('T')[0];
+      const titlePad = (job.title || 'Task').substring(0, 24).padEnd(24);
+      const gross = `₹\${job.wage}`.padEnd(6);
+      const fee = `₹\${(job.wage * 0.05).toFixed(0)}`.padEnd(8);
+      const net = `₹\${(job.wage * 1.05).toFixed(0)}`.padEnd(6);
+      const workerName = (job.workerId && workerCache[job.workerId]?.name || 'N/A').substring(0, 16);
+      report += `\${dateStr} | \${titlePad} | \${gross} | \${fee} | \${net} | \${workerName}\n`;
+    });
+
+    activeJobs.forEach(job => {
+      const dateStr = job.date || new Date().toISOString().split('T')[0];
+      const titlePad = (job.title || 'Task').substring(0, 24).padEnd(24);
+      const gross = `₹\${job.wage}`.padEnd(6);
+      const fee = `₹\${(job.wage * 0.05).toFixed(0)}`.padEnd(8);
+      const net = `₹\${(job.wage * 1.05).toFixed(0)}`.padEnd(6);
+      const workerName = (job.workerId && workerCache[job.workerId]?.name || 'N/A').substring(0, 16);
+      report += `\${dateStr} | \${titlePad} | \${gross} | \${fee} | \${net} | \${workerName} (Pending)\n`;
+    });
+
+    report += `-----------------------------------------------------------
+===========================================================
+            LOKLINK PAYROLL SERVICES INDIA • 2026
+===========================================================`;
+
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `LOKLINK_Expenditures_\${employerProfile.name.replace(/\\s+/g, '_')}_\${new Date().toISOString().split('T')[0]}.txt`;
+    link.click();
+    toast.success("Expenditures statement download compiled successfully!");
+  };
 
   // Worker detail modal drawer
   const [selectedWorker, setSelectedWorker] = useState<User | null>(null);
@@ -511,10 +633,10 @@ export default function EmployerDashboard() {
         <div className="absolute -bottom-20 -left-10 w-60 h-60 bg-orange-500/30 rounded-full blur-2xl pointer-events-none" />
 
         <div className="space-y-1 relative z-10">
-          <h1 className="text-3xl font-black tracking-tight font-display text-white">LOKLINK</h1>
+          <h1 className="text-3xl font-black tracking-tight font-display text-white">{t('LOKLINK')}</h1>
           <p className="text-xs text-orange-200/90 font-bold uppercase tracking-wider flex items-center gap-1.5">
             <MapPin size={12} className="text-orange-300" />
-            <span>Employer Control • {employerProfile.name} • {employerProfile.companyName || 'Residential'}</span>
+            <span>{t('Employer Control')} • {employerProfile.name} • {employerProfile.companyName || t('Residential')}</span>
           </p>
         </div>
         
@@ -531,26 +653,27 @@ export default function EmployerDashboard() {
           { id: 'overview', label: 'Overview' },
           { id: 'find-workers', label: 'Find Workers' },
           { id: 'post-job', label: 'Post a Job' },
-          { id: 'my-posts', label: `My Posts (${jobs.length})` },
+          { id: 'my-posts', label: 'My Posts', count: jobs.length },
           { id: 'ratings', label: 'Ratings Given' },
-          { id: 'ai-assistant', label: 'AI Dispatcher' }
-        ].map(t => (
+          { id: 'ai-assistant', label: 'AI Dispatcher' },
+          { id: 'analytics', label: 'Expense Analytics' }
+        ].map(tab => (
           <button
-            key={t.id}
+            key={tab.id}
             onClick={() => {
-              if (t.id === 'post-job') {
+              if (tab.id === 'post-job') {
                 openAddListing();
               } else {
-                setActiveTab(t.id as any);
+                setActiveTab(tab.id as any);
               }
             }}
             className={`px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all duration-200 cursor-pointer ${
-              activeTab === t.id 
+              activeTab === tab.id 
                 ? 'bg-white dark:bg-stone-800 text-orange-600 dark:text-orange-400 shadow-sm shadow-stone-200/50 dark:shadow-none' 
                 : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
             }`}
           >
-            {t.label}
+            {t(tab.label)}{tab.count !== undefined ? ` (${tab.count})` : ''}
           </button>
         ))}
       </nav>
@@ -576,23 +699,23 @@ export default function EmployerDashboard() {
                       <Briefcase size={36} />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-xl font-black text-stone-900 dark:text-white leading-tight">Active Campaigns</h3>
+                      <h3 className="text-xl font-black text-stone-900 dark:text-white leading-tight">{t("Active Campaigns")}</h3>
                       <p className="text-4xl font-black text-orange-600 dark:text-orange-400 mt-2">{openJobs.length}</p>
-                      <p className="text-xs text-stone-400 font-bold uppercase mt-1">Open job listings</p>
+                      <p className="text-xs text-stone-400 font-bold uppercase mt-1">{t("Open job listings")}</p>
                     </div>
                     <Button 
                       className="w-full rounded-2xl h-12 font-bold"
                       onClick={openAddListing}
                     >
                       <Plus size={16} className="mr-1" />
-                      Post New Offer
+                      {t("Post New Offer")}
                     </Button>
                   </Card>
 
                   <Card className="p-6 space-y-3 shadow-sm hover:shadow-md animate-slide-up stagger-2">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase text-stone-400">
-                      <span>Employer Rating</span>
-                      <span className="text-orange-600 dark:text-orange-400 font-extrabold">{employerProfile.employerRating && employerProfile.employerRating > 0 ? `${employerProfile.employerRating} / 5` : 'New'}</span>
+                      <span>{t("Employer Rating")}</span>
+                      <span className="text-orange-600 dark:text-orange-400 font-extrabold">{employerProfile.employerRating && employerProfile.employerRating > 0 ? `${employerProfile.employerRating} / 5` : t('New')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -602,14 +725,14 @@ export default function EmployerDashboard() {
                           className={star <= (employerProfile.employerRating || 0) ? 'text-orange-550 fill-orange-555' : 'text-stone-200 dark:text-stone-850'} 
                         />
                       ))}
-                      <span className="text-xs text-stone-400 font-bold ml-2">({employerProfile.employerReviewsCount || 0} reviews)</span>
+                      <span className="text-xs text-stone-400 font-bold ml-2">({employerProfile.employerReviewsCount || 0} {t("reviews")})</span>
                     </div>
                   </Card>
 
                   {/* LOKLINK Pay Wallet Balance loader card */}
                   <Card className="p-6 space-y-4 shadow-sm hover:shadow-md animate-slide-up stagger-3 border border-stone-200/40 bg-gradient-to-br from-emerald-500/5 to-transparent">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase text-stone-400">
-                      <span>LOKLINK Pay Wallet</span>
+                      <span>{t("LOKLINK Pay Wallet")}</span>
                       <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{employerProfile.walletBalance ?? 0}</span>
                     </div>
                     <div className="flex gap-2">
@@ -636,10 +759,10 @@ export default function EmployerDashboard() {
                   <Card className="p-8 space-y-6 bg-gradient-to-br from-orange-50/50 via-orange-100/5 to-transparent dark:from-orange-950/20 dark:via-stone-900/10 dark:to-stone-900 border border-orange-100/30 dark:border-stone-800 shadow-sm hover:shadow-md animate-slide-up stagger-3">
                     <div className="space-y-2">
                       <h2 className="text-3xl font-display font-black text-stone-950 leading-tight dark:text-white">
-                        Find physical trade workers in minutes!
+                        {t('Find physical trade workers in minutes!')}
                       </h2>
-                      <p className="text-sm text-stone-500 dark:text-stone-400 font-medium leading-relaxed">
-                        LOKLINK bridges the gap between individuals seeking local support and skilled physical labor workers (electricians, masons, carpenters, housekeeping) who earn on daily wage standards. Ensure you specify fair salaries and follow environmental safety guidelines.
+                      <p className="text-sm text-stone-550 dark:text-stone-400 font-medium leading-relaxed">
+                        {t('LOKLINK bridges the gap between individuals seeking local support and skilled physical labor workers (electricians, masons, carpenters, housekeeping) who earn on daily wage standards. Ensure you specify fair salaries and follow environmental safety guidelines.')}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -648,7 +771,7 @@ export default function EmployerDashboard() {
                         className="rounded-2xl px-6 h-12 text-xs font-black uppercase tracking-widest gap-2"
                         onClick={() => setActiveTab('find-workers')}
                       >
-                        <span>Find Workers Seek board</span>
+                        <span>{t('Find Workers Seek board')}</span>
                         <ArrowRight size={14} />
                       </Button>
                     </div>
@@ -656,14 +779,14 @@ export default function EmployerDashboard() {
 
                   {/* Summary of Open Jobs */}
                   <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider">Your Open Hiring Listings</h3>
+                    <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider">{t('Your Open Hiring Listings')}</h3>
                     {openJobs.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {openJobs.slice(0, 2).map(job => (
                           <Card key={job.id} className="p-6 space-y-3 hover:border-orange-200 transition-colors">
                             <div className="flex justify-between items-start">
                               <Badge variant="warning" className="text-[9px] font-black uppercase px-2 py-0.5">{job.skillRequired}</Badge>
-                              <span className="text-orange-600 font-black text-sm">₹{job.wage}/Day</span>
+                              <span className="text-orange-600 font-black text-sm">₹{job.wage}/{t('Day')}</span>
                             </div>
                             <h4 className="font-display font-black text-stone-900 dark:text-white truncate">{job.title}</h4>
                             <div className="flex items-center gap-2 text-stone-400 text-[10px] font-bold">
@@ -675,13 +798,11 @@ export default function EmployerDashboard() {
                       </div>
                     ) : (
                       <Card className="p-6 text-center py-10 text-stone-400 italic text-xs">
-                        No active jobs published. Click "Post a Job" to get started.
+                        {t('No active jobs published. Click "Post a Job" to get started.')}
                       </Card>
                     )}
                   </div>
-
                 </div>
-
               </div>
             )}
 
@@ -1185,6 +1306,147 @@ export default function EmployerDashboard() {
                       <Send size={18} />
                     </Button>
                   </form>
+                </Card>
+              </div>
+            )}
+
+            {/* TAB 7: EXPENSE ANALYTICS */}
+            {activeTab === 'analytics' && (
+              <div className="space-y-6 animate-scale-in">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-black text-stone-900 dark:text-white tracking-tight">Hiring Expense Analytics</h2>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownloadExpenseReport}
+                    className="rounded-xl font-bold text-xs gap-2 border-stone-200"
+                  >
+                    <Download size={14} />
+                    <span>Download Expenditures Statement</span>
+                  </Button>
+                </div>
+
+                {/* Statistics Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <Card className="p-5 flex flex-col justify-between h-[120px] shadow-sm hover:shadow-md border border-stone-200/40">
+                    <span className="text-[9px] font-black uppercase text-stone-450 tracking-wider">Gross Expenditures</span>
+                    <h3 className="text-2xl font-black text-stone-900 dark:text-white font-mono">₹{expensesLog.grossTotal}</h3>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col justify-between h-[120px] shadow-sm hover:shadow-md border border-stone-200/40 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                    <span className="text-[9px] font-black uppercase text-stone-450 tracking-wider">Total Net Cost (Inc Fee)</span>
+                    <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-450 font-mono">₹{expensesLog.netTotal.toFixed(0)}</h3>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col justify-between h-[120px] shadow-sm hover:shadow-md border border-stone-200/40">
+                    <span className="text-[9px] font-black uppercase text-stone-450 tracking-wider">LOKLINK Escrow Fee (5%)</span>
+                    <h3 className="text-2xl font-black text-orange-600 font-mono">₹{expensesLog.commissionTotal.toFixed(0)}</h3>
+                  </Card>
+
+                  <Card className="p-5 flex flex-col justify-between h-[120px] shadow-sm hover:shadow-md border border-stone-200/40">
+                    <span className="text-[9px] font-black uppercase text-stone-450 tracking-wider">Hired Campaigns</span>
+                    <h3 className="text-2xl font-black text-stone-900 dark:text-white font-mono">{expensesLog.completedCount} Resolved</h3>
+                  </Card>
+                </div>
+
+                {/* SVG Visual Graphs for Expenditures */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Chart 1: Weekly Breakdown */}
+                  <Card className="p-6 space-y-4 shadow-sm">
+                    <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider ml-1">Weekly Expenditures</h3>
+                    <div className="h-[180px] w-full flex items-end justify-between px-4 pt-6 bg-stone-50 dark:bg-stone-950 rounded-[24px]">
+                      {expensesLog.weeklyList.map((item, idx) => {
+                        const maxWage = 800; // scaling cap
+                        const percentage = Math.min((item.wage / maxWage) * 100, 100);
+                        return (
+                          <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end flex-1 max-w-[50px] group cursor-pointer">
+                            <span className="text-[9px] font-black text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+                              ₹{item.wage}
+                            </span>
+                            <div 
+                              className="w-7 bg-gradient-to-t from-orange-500 to-orange-600 rounded-t-lg transition-all duration-500 hover:from-orange-600 hover:to-orange-700 hover:scale-105" 
+                              style={{ height: `${percentage}%` }}
+                            />
+                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{item.day}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+
+                  {/* Chart 2: Monthly Breakdown */}
+                  <Card className="p-6 space-y-4 shadow-sm">
+                    <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider ml-1">Monthly Expenditures Summary</h3>
+                    <div className="h-[180px] w-full flex items-end justify-between px-4 pt-6 bg-stone-50 dark:bg-stone-950 rounded-[24px]">
+                      {expensesLog.monthlyList.map((item, idx) => {
+                        const maxMonthWage = 3000;
+                        const percentage = Math.min((item.wage / maxMonthWage) * 100, 100);
+                        return (
+                          <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end flex-1 max-w-[50px] group cursor-pointer">
+                            <span className="text-[9px] font-black text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+                              ₹{item.wage}
+                            </span>
+                            <div 
+                              className="w-7 bg-gradient-to-t from-emerald-500 to-emerald-600 rounded-t-lg transition-all duration-500 hover:from-emerald-600 hover:to-emerald-700 hover:scale-105" 
+                              style={{ height: `${percentage}%` }}
+                            />
+                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{item.month}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Expenditures spreadsheet Ledger */}
+                <Card className="p-6 space-y-4 shadow-sm overflow-hidden">
+                  <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider">Itemized Expenditures Ledger</h3>
+                  <div className="overflow-x-auto no-scrollbar rounded-2xl border border-stone-100 dark:border-stone-850">
+                    <table className="w-full text-left text-xs font-bold leading-normal border-collapse">
+                      <thead>
+                        <tr className="bg-stone-50 dark:bg-stone-900 border-b border-stone-100 dark:border-stone-850 text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                          <th className="p-4">Date</th>
+                          <th className="p-4">Work Title</th>
+                          <th className="p-4 text-right">Gross Cost</th>
+                          <th className="p-4 text-right font-medium">Escrow Fee (5%)</th>
+                          <th className="p-4 text-right">Total Net Cost</th>
+                          <th className="p-4 text-center">Hired Specialist</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {jobs.filter(j => j.status === 'completed' || j.status === 'accepted' || j.status === 'worker_completed').length > 0 ? (
+                          jobs.filter(j => j.status === 'completed' || j.status === 'accepted' || j.status === 'worker_completed').map(j => {
+                            const commission = j.wage * 0.05;
+                            const total = j.wage + commission;
+                            const worker = j.workerId ? workerCache[j.workerId] : null;
+                            return (
+                              <tr key={j.id} className="border-b border-stone-100/50 dark:border-stone-850 hover:bg-stone-50/30 transition-colors">
+                                <td className="p-4 text-stone-400">{j.date || '2026-05-27'}</td>
+                                <td className="p-4 text-stone-900 dark:text-white font-extrabold max-w-[180px] truncate">
+                                  {j.title}
+                                </td>
+                                <td className="p-4 text-right text-stone-900 dark:text-white">₹{j.wage}</td>
+                                <td className="p-4 text-right text-stone-450 font-medium">+₹{commission.toFixed(0)}</td>
+                                <td className="p-4 text-right text-emerald-600 dark:text-emerald-450 font-black">₹{total.toFixed(0)}</td>
+                                <td className="p-4 text-center">
+                                  {worker ? (
+                                    <span className="text-xs text-stone-750 dark:text-stone-300 font-extrabold">{worker.name}</span>
+                                  ) : (
+                                    <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider font-sans">Awaiting Accept</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-stone-400 italic font-medium">
+                              No expenditures transaction ledger logged today.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </Card>
               </div>
             )}

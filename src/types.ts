@@ -31,6 +31,9 @@ export interface User {
   language: string;
   createdAt: number;
   updatedAt: number;
+  isVerified?: boolean;
+  idCardDetails?: any;
+  walletBalance?: number;
   
   // Worker-only fields
   skills?: string[];
@@ -59,6 +62,8 @@ export interface Job {
   duration: string;
   status: JobStatus;
   createdAt: number;
+  titleTranslations?: Record<string, string>;
+  descTranslations?: Record<string, string>;
 }
 
 export interface JobRequest {
@@ -99,6 +104,7 @@ export interface Review {
   ratings: WorkerReviewRatings | EmployerReviewRatings;
   overall: number;
   createdAt: number;
+  comment?: string;
   
   // Extra helper fields
   reviewerName?: string;

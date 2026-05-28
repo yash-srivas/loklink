@@ -52,20 +52,17 @@ export default function SOS() {
 
   const handleHelp = async (id: string) => {
     try {
-      await dbService.incrementSOSHelp(id);
-      
-      // If helper is logged in, reward them ₹50 for community aid!
       if (user) {
-        await dbService.loadMockFunds(user.uid, 50);
-        toast.success("Community SOS incentive credited!", {
-          description: "₹50 loaded into LOKLINK Pay Wallet for answering local emergency!"
+        // Accept the SOS and transition to "helping"
+        await dbService.acceptSOSRequest(id, user.uid);
+        toast.success("SOS Rescue Claimed Successfully!", {
+          description: "Mission registered on your Dashboard active tasks. Payout incentive credited on resolution."
         });
       } else {
+        await dbService.incrementSOSHelp(id);
+        await dbService.resolveSOSRequest(id);
         toast.success("Thank you for helping!", { description: "We've notified the user." });
       }
-
-      // Automatically mark as resolved if helpCount increases
-      await dbService.resolveSOSRequest(id);
       loadSOS();
     } catch (e) {
       toast.error('Failed to register help response');

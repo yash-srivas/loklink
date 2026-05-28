@@ -171,16 +171,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInMockUser = async (selectedRole: 'worker' | 'employer', phoneInput?: string) => {
     setLoading(true);
     // Generate/Use mock credentials
-    const targetUid = selectedRole === 'worker' ? 'mock-w-1' : 'mock-emp-1';
+    const cleanPhone = phoneInput ? phoneInput.replace(/\D/g, '') : '';
+    const targetUid = cleanPhone ? `mock-${selectedRole}-${cleanPhone}` : (selectedRole === 'worker' ? 'mock-w-1' : 'mock-emp-1');
     let profile = await dbService.getUserProfile(targetUid);
     
     if (!profile) {
+      // Premium deterministic name mapping for easy testing
+      let defaultName = selectedRole === 'worker' ? 'Basavaraj Patil' : 'Rahul Khanna';
+      let defaultCity = 'Hubballi';
+      let defaultArea = 'Vidyanagar';
+      
+      if (targetUid === 'mock-w-1') {
+        defaultName = 'Manjunath Swamy';
+        defaultCity = 'Bengaluru';
+        defaultArea = 'Koramangala';
+      } else if (targetUid === 'mock-emp-1') {
+        defaultName = 'Rahul Khanna';
+        defaultCity = 'Bengaluru';
+        defaultArea = 'Koramangala';
+      } else if (cleanPhone === '9090909090') {
+        defaultName = 'Basavaraj Patil';
+        defaultCity = 'Hubballi';
+        defaultArea = 'Vidyanagar';
+      } else if (cleanPhone === '9191919191') {
+        defaultName = 'Somashekhar Hubballi';
+        defaultCity = 'Hubballi';
+        defaultArea = 'Vidyanagar';
+      } else if (cleanPhone === '9999999999' || targetUid === 'mock-admin') {
+        defaultName = 'Rahul Admin';
+        defaultCity = 'Bengaluru';
+        defaultArea = 'Koramangala';
+      } else if (cleanPhone) {
+        defaultName = selectedRole === 'worker' ? `Worker (${phoneInput})` : `Employer (${phoneInput})`;
+      }
+
       // Create profile
       profile = await dbService.createUserProfile(targetUid, {
         role: selectedRole,
-        name: selectedRole === 'worker' ? 'Manjunath Swamy' : 'Rahul Khanna',
-        phone: phoneInput || (selectedRole === 'worker' ? '9876543210' : '9988776655')
-      });
+        name: defaultName,
+        phone: phoneInput || (selectedRole === 'worker' ? '9876543210' : '9988776655'),
+        city: defaultCity,
+        area: defaultArea,
+        skills: selectedRole === 'worker' ? (targetUid === 'mock-w-1' ? ['Carpenter'] : ['Electrician']) : [],
+        dailyWage: selectedRole === 'worker' ? (targetUid === 'mock-w-1' ? 650 : 750) : 0,
+        isVerified: selectedRole === 'worker' ? true : false, // Seed verified for direct tests
+        isAdmin: (cleanPhone === '9999999999' || targetUid === 'mock-admin') ? true : false
+      } as any);
     }
 
     if (phoneInput && profile) {
@@ -404,13 +440,21 @@ function AppContent() {
 // Visual Role Selector + SMS Phone Auth Countdown OTP Verification
 function WelcomeScreen() {
   const { signIn, setRole, signInMockUser } = useAuth() as any;
-  const [roleSelection, setRoleSelection] = useState<'worker' | 'employer' | null>(null);
+  const [roleSelection, setRoleSelection] = useState<'worker' | 'employer' | null>(() => {
+    return (localStorage.getItem('loklink_temp_role') as 'worker' | 'employer') || null;
+  });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [timer, setTimer] = useState(30);
+
+  // Sync role Selection from local storage on mount
+  useEffect(() => {
+    const role = localStorage.getItem('loklink_temp_role') as 'worker' | 'employer' | null;
+    setRoleSelection(role);
+  }, []);
 
   // Timer countdown
   useEffect(() => {
@@ -647,6 +691,71 @@ function WelcomeScreen() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Premium Quick Demo Switcher Panel */}
+        <div className="pt-6 border-t border-stone-100 dark:border-stone-850/60 space-y-3 shrink-0">
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles size={13} className="text-orange-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase text-stone-400 dark:text-stone-500 tracking-wider">⚡ Connected Quick Switcher</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                localStorage.setItem('loklink_temp_role', 'employer');
+                await signInMockUser('employer', '9988776655');
+              }}
+              className="rounded-xl font-bold h-10 border-stone-200/50 dark:border-stone-800 text-[10px] uppercase truncate bg-white dark:bg-stone-900 cursor-pointer shadow-sm hover:shadow"
+            >
+              💼 Rahul (Employer)
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                localStorage.setItem('loklink_temp_role', 'worker');
+                await signInMockUser('worker', '9876543210');
+              }}
+              className="rounded-xl font-bold h-10 border-stone-200/50 dark:border-stone-800 text-[10px] uppercase truncate bg-white dark:bg-stone-900 cursor-pointer shadow-sm hover:shadow"
+            >
+              🛠️ Manjunath (Worker)
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                localStorage.setItem('loklink_temp_role', 'employer');
+                await signInMockUser('employer', '9191919191');
+              }}
+              className="rounded-xl font-bold h-10 border-stone-200/50 dark:border-stone-800 text-[10px] uppercase truncate bg-white dark:bg-stone-900 cursor-pointer shadow-sm hover:shadow"
+            >
+              🏢 Somashekhar (Hub Emp)
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                localStorage.setItem('loklink_temp_role', 'worker');
+                await signInMockUser('worker', '9090909090');
+              }}
+              className="rounded-xl font-bold h-10 border-stone-200/50 dark:border-stone-800 text-[10px] uppercase truncate bg-white dark:bg-stone-900 cursor-pointer shadow-sm hover:shadow"
+            >
+              ⚡ Basavaraj (Hub Worker)
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                localStorage.setItem('loklink_temp_role', 'employer');
+                await signInMockUser('employer', '9999999999');
+              }}
+              className="col-span-2 rounded-xl font-bold h-10 border-stone-200/50 dark:border-stone-800 text-[10px] uppercase truncate bg-white dark:bg-stone-900 cursor-pointer shadow-sm hover:shadow text-orange-600 dark:text-orange-400"
+            >
+              👑 Rahul (Platform Admin)
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -76,7 +76,7 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 export default function Explore() {
   const navigate = useNavigate();
   const { user, role } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   
   const isSavedPage = window.location.pathname === '/saved';
 
@@ -214,6 +214,12 @@ export default function Explore() {
         const workerProfile = await dbService.getUserProfile(currentUser.uid);
         if (!workerProfile || workerProfile.role !== 'worker') {
           toast.error('Only workers can accept jobs.');
+          return;
+        }
+        if (!workerProfile.isVerified) {
+          toast.error('Identity Verification Required!', {
+            description: 'You must verify your Aadhar card before claiming tasks. Go to your dashboard to complete verification.'
+          });
           return;
         }
         await dbService.acceptJobDirectly(id, currentUser.uid, workerProfile.name);
@@ -451,11 +457,14 @@ export default function Explore() {
              </button>`
           : `<p class="text-[10px] text-stone-400 font-bold text-center italic">Claiming open for workers only</p>`;
 
+        const displayTitle = (job.titleTranslations && job.titleTranslations[language]) || job.title;
+        const displayDesc = (job.descTranslations && job.descTranslations[language]) || job.description;
+
         const popupContent = `
           <div class="p-3 font-sans w-56 text-stone-900 leading-tight">
-            <Badge variant="warning" class="text-[8px] px-1.5 py-0.5 rounded-sm font-black mb-1 block w-fit">${job.skillRequired.toUpperCase()}</Badge>
-            <h3 class="font-extrabold text-sm mb-1 leading-tight text-stone-950">${job.title}</h3>
-            <p class="text-xs text-stone-500 font-medium line-clamp-2 mb-3">${job.description}</p>
+            <span class="text-[8px] px-1.5 py-0.5 rounded bg-orange-105 bg-orange-100 text-orange-700 font-black mb-1 inline-block">${job.skillRequired.toUpperCase()}</span>
+            <h3 class="font-extrabold text-sm mb-1 leading-tight text-stone-950">${displayTitle}</h3>
+            <p class="text-xs text-stone-500 font-medium line-clamp-2 mb-3">${displayDesc}</p>
             ${acceptButton}
           </div>
         `;
@@ -465,7 +474,7 @@ export default function Explore() {
         markersRef.current[job.id] = marker;
       });
     }
-  }, [mapMode, filteredWorkers, filteredJobs]);
+  }, [mapMode, filteredWorkers, filteredJobs, language]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -487,7 +496,7 @@ export default function Explore() {
             <ArrowLeft size={18} />
           </Button>
           <h1 className="text-xl font-black tracking-tight text-stone-900 dark:text-white font-display">
-            {isSavedPage ? 'Saved Items' : 'Explore LOKLINK'}
+            {isSavedPage ? t('Saved Items') : t('Explore LOKLINK')}
           </h1>
         </div>
         
@@ -505,7 +514,7 @@ export default function Explore() {
                   mapMode === 'workers' ? "bg-white dark:bg-stone-700 text-orange-600 dark:text-orange-400 shadow-sm" : "text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300"
                 )}
               >
-                Workers Layer
+                {t("Workers Layer")}
               </button>
               <button
                 onClick={() => {
@@ -517,7 +526,7 @@ export default function Explore() {
                   mapMode === 'jobs' ? "bg-white dark:bg-stone-700 text-orange-600 dark:text-orange-400 shadow-sm" : "text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300"
                 )}
               >
-                Open Jobs Map
+                {t("Open Jobs Map")}
               </button>
             </div>
           )}
@@ -535,7 +544,7 @@ export default function Explore() {
             variant="ghost"
             size="icon"
             className="rounded-full text-orange-650 hover:bg-orange-50 dark:hover:bg-orange-950/20 h-10 w-10 cursor-pointer"
-            onClick={handleUseMyLocation}
+            onClick={() => handleUseMyLocation()}
           >
             <Navigation size={18} />
           </Button>
@@ -571,7 +580,7 @@ export default function Explore() {
             className="rounded-full whitespace-nowrap px-5"
             onClick={() => setSelectedCategory('All')}
           >
-            All Trades
+            {t('All Trades')}
           </Button>
           {WORKER_CATEGORIES.map((cat) => (
             <Button
@@ -590,7 +599,7 @@ export default function Explore() {
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-20 pointer-events-none">
           <div className="relative group pointer-events-auto shadow-xl shadow-stone-900/5 rounded-full">
             <Input
-              placeholder={mapMode === 'workers' ? "Search available workers..." : "Search open job keywords..."}
+              placeholder={mapMode === 'workers' ? t("Search available workers...") : t("Search open job keywords...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 pr-10 rounded-full h-14 bg-white/95 dark:bg-stone-900/95 border-transparent focus:ring-4 focus:ring-orange-500/10 focus-visible:border-orange-500/30"
@@ -609,10 +618,10 @@ export default function Explore() {
           <div className="max-w-3xl mx-auto w-full space-y-4">
             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">
               {isSavedPage 
-                ? `${mapMode === 'workers' ? filteredWorkers.length : filteredJobs.length} Bookmarked Tradespeople & Jobs Saved`
+                ? `${mapMode === 'workers' ? filteredWorkers.length : filteredJobs.length} ${t('Bookmarked Tradespeople & Jobs Saved')}`
                 : (mapMode === 'workers' 
-                  ? `${filteredWorkers.length} Available Trade Specialists Nearby` 
-                  : `${filteredJobs.length} Open Job Posts Map Markers`)
+                  ? `${filteredWorkers.length} ${t('Available Trade Specialists Nearby')}` 
+                  : `${filteredJobs.length} ${t('Open Job Posts Map Markers')}`)
               }
             </span>
             
@@ -654,33 +663,37 @@ export default function Explore() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {filteredJobs.map(job => (
-                  <Card
-                    key={job.id}
-                    className="p-6 bg-white space-y-3 dark:bg-stone-900 relative border border-stone-100 dark:border-stone-800"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <Badge variant="warning" className="text-[9px] font-black px-2 py-0.5 uppercase">{job.skillRequired}</Badge>
-                      <span className="text-orange-600 font-black text-sm">₹{job.wage}/Day</span>
-                    </div>
-                    <h3 className="font-display font-black text-stone-900 dark:text-white">{job.title}</h3>
-                    <p className="text-xs text-stone-500 font-medium line-clamp-2">{job.description}</p>
-                    
-                    <div className="flex justify-between items-center pt-3 border-t border-stone-50 dark:border-stone-850">
-                      <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{job.location.area}</span>
-                      {role === 'worker' && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white font-bold h-9"
-                          onClick={() => (window as any).claimJobDirectly(job.id)}
-                        >
-                          Claim Post
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ))}
+                {filteredJobs.map(job => {
+                  const displayTitle = (job.titleTranslations && job.titleTranslations[language]) || job.title;
+                  const displayDesc = (job.descTranslations && job.descTranslations[language]) || job.description;
+                  return (
+                    <Card
+                      key={job.id}
+                      className="p-6 bg-white space-y-3 dark:bg-stone-900 relative border border-stone-100 dark:border-stone-800"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <Badge variant="warning" className="text-[9px] font-black px-2 py-0.5 uppercase">{job.skillRequired}</Badge>
+                        <span className="text-orange-600 font-black text-sm">₹{job.wage}/Day</span>
+                      </div>
+                      <h3 className="font-display font-black text-stone-900 dark:text-white">{displayTitle}</h3>
+                      <p className="text-xs text-stone-500 font-medium line-clamp-2">{displayDesc}</p>
+                      
+                      <div className="flex justify-between items-center pt-3 border-t border-stone-50 dark:border-stone-850">
+                        <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{job.location.area}</span>
+                        {role === 'worker' && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white font-bold h-9"
+                            onClick={() => (window as any).claimJobDirectly(job.id)}
+                          >
+                            Claim Post
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

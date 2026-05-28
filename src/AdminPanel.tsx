@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Badge, Input } from './components/ui';
 import { dbService, ExtendedUser, SOSCrises } from './services/dbService';
-import { Job } from './types';
+import { Job, JobStatus } from './types';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,7 +52,7 @@ export default function AdminPanel() {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [editJobTitle, setEditJobTitle] = useState('');
   const [editJobWage, setEditJobWage] = useState<number>(0);
-  const [editJobStatus, setEditJobStatus] = useState<'open' | 'accepted' | 'completed' | 'cancelled'>('open');
+  const [editJobStatus, setEditJobStatus] = useState<JobStatus>('open');
 
   useEffect(() => {
     loadAllData();
