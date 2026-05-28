@@ -9,8 +9,6 @@
 [![Gemini](https://img.shields.io/badge/Gemini_AI-2.5_Flash-4285F4?logo=googlegemini&logoColor=white)](https://deepmind.google/technologies/gemini)
 [![Firebase](https://img.shields.io/badge/Firebase-12.11.0-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
 
-</div>
-
 ---
 
 ## 📖 Project Overview
