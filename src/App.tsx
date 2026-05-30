@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-
+import TranslateWidget from './components/TranslateWidget';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
@@ -774,6 +774,7 @@ export default function App() {
         </LanguageProvider>
       </AuthProvider>
       <Toaster position="top-center" closeButton richColors />
+      <TranslateWidget />  
     </ErrorBoundary>
   );
 }
