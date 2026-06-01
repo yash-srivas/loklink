@@ -62,35 +62,59 @@ export default function EmployerDashboard() {
   const [workerCache, setWorkerCache] = useState<Record<string, User>>({});
 
   const expensesLog = useMemo(() => {
+    const committedJobs = jobs.filter(j => j.status !== 'cancelled');
     const completed = jobs.filter(j => j.status === 'completed');
     const active = jobs.filter(j => j.status === 'accepted' || j.status === 'worker_completed');
-    const totalExpenditures = completed.reduce((sum, j) => sum + (j.wage || 0), 0);
+    const escrowed = jobs.filter(j => j.status === 'open');
+
+    // Total expenditures includes both fully paid and currently active/escrowed wages
+    const totalExpenditures = committedJobs.reduce((sum, j) => sum + (j.wage || 0), 0);
     const grossTotal = totalExpenditures;
     const commissionTotal = grossTotal * 0.05;
     const netTotal = grossTotal + commissionTotal;
 
-    const monWage = completed[0] ? completed[0].wage : 0;
-    const tueWage = completed[1] ? completed[1].wage : 0;
-    const wedWage = completed[2] ? completed[2].wage : 0;
-    const thuWage = completed[3] ? completed[3].wage : 0;
-    const friWage = completed[4] ? completed[4].wage : 0;
+    // Dynamic Weekly Breakdown (Mon-Sun)
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weeklyMap = days.reduce((acc, d) => {
+      acc[d] = 0;
+      return acc;
+    }, {} as Record<string, number>);
 
-    // Weekly and Monthly expenditures
-    const weeklyList = [
-      { day: 'Mon', wage: monWage },
-      { day: 'Tue', wage: tueWage },
-      { day: 'Wed', wage: wedWage },
-      { day: 'Thu', wage: thuWage },
-      { day: 'Fri', wage: friWage }
-    ];
+    committedJobs.forEach(j => {
+      const d = new Date(j.date || j.createdAt);
+      if (!isNaN(d.getTime())) {
+        // getDay() returns 0 for Sunday, 1 for Monday, ..., 6 for Saturday.
+        // We map Sunday (0) to index 6, and Monday-Saturday (1-6) to index 0-5.
+        const dayIndex = d.getDay() === 0 ? 6 : d.getDay() - 1;
+        const dName = days[dayIndex];
+        weeklyMap[dName] += (j.wage || 0);
+      }
+    });
 
-    const monthlyList = [
-      { month: 'Jan', wage: 0 },
-      { month: 'Feb', wage: 0 },
-      { month: 'Mar', wage: 0 },
-      { month: 'Apr', wage: 0 },
-      { month: 'May', wage: grossTotal }
-    ];
+    const weeklyList = days.map(day => ({
+      day,
+      wage: weeklyMap[day]
+    }));
+
+    // Dynamic Monthly Breakdown (Jan-Dec)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyMap = months.reduce((acc, m) => {
+      acc[m] = 0;
+      return acc;
+    }, {} as Record<string, number>);
+
+    committedJobs.forEach(j => {
+      const d = new Date(j.date || j.createdAt);
+      if (!isNaN(d.getTime())) {
+        const mName = months[d.getMonth()];
+        monthlyMap[mName] += (j.wage || 0);
+      }
+    });
+
+    const monthlyList = months.map(month => ({
+      month,
+      wage: monthlyMap[month]
+    }));
 
     return {
       totalExpenditures,
@@ -110,11 +134,12 @@ export default function EmployerDashboard() {
       return;
     }
 
+    const committedJobs = jobs.filter(j => j.status !== 'cancelled');
     const completedJobs = jobs.filter(j => j.status === 'completed');
     const activeJobs = jobs.filter(j => j.status === 'accepted' || j.status === 'worker_completed');
     const openJobs = jobs.filter(j => j.status === 'open');
 
-    const grossTotal = completedJobs.reduce((sum, j) => sum + (j.wage || 500), 0);
+    const grossTotal = committedJobs.reduce((sum, j) => sum + (j.wage || 0), 0);
     const commissionTotal = grossTotal * 0.05;
     const netTotal = grossTotal + commissionTotal;
 
@@ -1355,7 +1380,7 @@ Date         | Task Title               | Gross  | Fee (5%) | Total  | Hired Spe
                     <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider ml-1">Weekly Expenditures</h3>
                     <div className="h-[180px] w-full flex items-end justify-between px-4 pt-6 bg-stone-50 dark:bg-stone-950 rounded-[24px]">
                       {expensesLog.weeklyList.map((item, idx) => {
-                        const maxWage = 800; // scaling cap
+                        const maxWage = Math.max(...expensesLog.weeklyList.map(w => w.wage), 800);
                         const percentage = Math.min((item.wage / maxWage) * 100, 100);
                         return (
                           <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end flex-1 max-w-[50px] group cursor-pointer">
@@ -1378,7 +1403,7 @@ Date         | Task Title               | Gross  | Fee (5%) | Total  | Hired Spe
                     <h3 className="text-xs font-black uppercase text-stone-400 tracking-wider ml-1">Monthly Expenditures Summary</h3>
                     <div className="h-[180px] w-full flex items-end justify-between px-4 pt-6 bg-stone-50 dark:bg-stone-950 rounded-[24px]">
                       {expensesLog.monthlyList.map((item, idx) => {
-                        const maxMonthWage = 3000;
+                        const maxMonthWage = Math.max(...expensesLog.monthlyList.map(m => m.wage), 3000);
                         const percentage = Math.min((item.wage / maxMonthWage) * 100, 100);
                         return (
                           <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end flex-1 max-w-[50px] group cursor-pointer">
